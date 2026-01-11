@@ -1,32 +1,315 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
+# ====================================
+# LegacyChain Project .gitignore
+# ====================================
+
+# ============ Environment Variables ============
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# ============ Secrets & Keys ============
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.yml
+private_key.txt
+keystore/
+
+# ============ Smart Contract (Foundry) ============
+# Build outputs
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+contracts/forge-cache/
+
+# Foundry artifacts
+contracts/.gas-snapshot
+contracts/.solcover
+contracts/.coverage_artifacts/
+contracts/.coverage_cache/
+contracts/.coverage_contracts/
+
+# TypeChain
+contracts/typechain/
+contracts/typechain-types/
+
+# Hardhat (if used)
+contracts/artifacts/
+contracts/cache/
+contracts/coverage/
+
+# ============ Go Backend ============
+# Binaries
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Test binary
 *.test
 
-# Code coverage profiles and other test artifacts
+# Coverage
 *.out
 coverage.*
 *.coverprofile
 profile.cov
+coverage.html
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Dependencies
+backend/vendor/
 
-# Go workspace file
+# Go workspace
 go.work
 go.work.sum
 
-# env file
-.env
+# Build
+backend/bin/
+backend/build/
+backend/dist/
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# ============ Frontend (Next.js) ============
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+
+# Production
+frontend/build/
+frontend/dist/
+
+# Testing
+frontend/coverage/
+frontend/.nyc_output/
+
+# Misc
+frontend/.DS_Store
+frontend/*.log
+
+# TypeScript
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Vercel
+frontend/.vercel
+
+# Turbo
+frontend/.turbo
+
+# ============ Docker ============
+# Docker volumes
+docker/data/
+docker/volumes/
+docker/besu/data/
+docker/postgres/data/
+docker/redis/data/
+
+# Docker logs
+docker/**/*.log
+
+# ============ Database ============
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+dump.sql
+
+# PostgreSQL
+postgres-data/
+pgdata/
+
+# Redis
+redis-data/
+dump.rdb
+
+# ============ Logs ============
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============ OS Files ============
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============ IDE & Editors ============
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.vscode-server/
+
+# Claude AI
+.claude/
+
+# Codex
+.codex/
+
+# JetBrains
+.idea/
+*.swp
+*.swo
+*~.nib
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# ============ Testing ============
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# ============ Temporary Files ============
+*.tmp
+*.temp
+*.swp
+*.bak
+*.backup
+*~
+
+# Cache directories
+.cache/
+.npm/
+.config/
+
+# System/Runtime
+.dotnet/
+.foundry/
+
+# SSH (should never be in project)
+.ssh/
+
+# ============ Build Artifacts ============
+dist/
+build/
+*.tar.gz
+*.zip
+*.rar
+
+# ============ Infrastructure ============
+# Terraform
+infrastructure/**/.terraform/
+infrastructure/**/.terraform.lock.hcl
+infrastructure/**/terraform.tfstate
+infrastructure/**/terraform.tfstate.backup
+infrastructure/**/*.tfvars
+!infrastructure/**/terraform.tfvars.example
+infrastructure/**/.terragrunt-cache/
+infrastructure/**/override.tf
+infrastructure/**/override.tf.json
+
+# Kubernetes secrets
+infrastructure/k8s/secrets/
+infrastructure/k8s/**/*-secret.yaml
+!infrastructure/k8s/**/*-secret.example.yaml
+
+# AWS
+.aws/
+
+# ============ Documentation ============
+# Exclude generated docs
+docs/api/generated/
+docs/coverage/
+
+# Exclude project planning docs (private)
+docs/PRD.md
+docs/PROJECT_PLAN.md
+
+# Keep important docs
+!docs/README.md
+!docs/*.md
+!docs/API_SPEC.md
+!docs/DEV_LOG.md
+!docs/TROUBLESHOOTING.md
+!docs/DECISIONS.md
+
+# ============ CI/CD ============
+.github/workflows/secrets/
+
+# GitHub Copilot (개인 설정/캐시만 제외)
+.github/.copilot/
+.github/agents/          # 개인 에이전트 설정
+.github/prompts/         # 개인 프롬프트
+
+# 중요: .github/copilot-instructions.md는 프로젝트 지침이므로 커밋해야 함!
+
+# ============ Monitoring ============
+prometheus-data/
+grafana-data/
+
+# ============ Node Modules (Global) ============
+node_modules/
+jspm_packages/
+
+# ============ Package Manager Lock Files ============
+# Keep lock files for reproducible builds
+# Uncomment if you want to ignore them:
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ============ MacOS ============
+.AppleDouble
+.LSOverride
+Icon
+
+# ============ Windows ============
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
