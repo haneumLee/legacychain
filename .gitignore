@@ -268,11 +268,11 @@ docs/PROJECT_PLAN.md
 
 # Keep important docs
 !docs/README.md
-!docs/*.md
 !docs/API_SPEC.md
 !docs/DEV_LOG.md
 !docs/TROUBLESHOOTING.md
 !docs/DECISIONS.md
+!docs/SECURITY_REPORT.md
 
 # ============ CI/CD ============
 .github/workflows/secrets/
