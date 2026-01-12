@@ -12,6 +12,10 @@
 2. [ADR-002: Commit-Reveal Heartbeat](#adr-002-commit-reveal-heartbeat)
 3. [ADR-003: Pausable Emergency Stop](#adr-003-pausable-emergency-stop)
 4. [ADR-004: OpenZeppelin v5.5.0 사용](#adr-004-openzeppelin-v550-사용)
+5. [ADR-005: Hyperledger Besu Private Network 선택](#adr-005-hyperledger-besu-private-network-선택)
+6. [ADR-006: Clique PoA Consensus 채택](#adr-006-clique-poa-consensus-채택)
+7. [ADR-007: EVM Version London 설정](#adr-007-evm-version-london-설정)
+8. [ADR-008: Single-Node 초기 구성](#adr-008-single-node-초기-구성)
 
 ---
 
@@ -301,13 +305,301 @@ openzeppelin-contracts-upgradeable v5.5.0
 
 ---
 
+## ADR-005: Hyperledger Besu Private Network 선택
+
+### Date
+2026-01-12
+
+### Status
+✅ Accepted
+
+### Context
+Private Ethereum 네트워크 구축을 위해 여러 옵션을 평가했습니다:
+
+**후보 기술**:
+1. **Anvil** (Foundry): 로컬 개발용 경량 노드
+2. **Ganache**: Truffle Suite의 테스트 네트워크
+3. **Geth**: 공식 Ethereum 클라이언트
+4. **Hyperledger Besu**: Enterprise-grade Ethereum 클라이언트
+
+**요구사항**:
+- Private network 운영 가능
+- PoA consensus 지원
+- Production-ready
+- Docker 기반 배포 가능
+- RPC/WebSocket 지원
+
+### Decision
+**Hyperledger Besu 24.12.0** 채택
+
+**선택 이유**:
+1. **Enterprise 지원**: Linux Foundation 후원, Apache 2.0 라이선스
+2. **다양한 Consensus**: Clique, IBFT 2.0, QBFT 지원
+3. **Privacy 기능**: Private transactions, Permissioning
+4. **Active Development**: 정기적인 업데이트 및 보안 패치
+5. **Production 실적**: ConsenSys 등 대기업 사용
+
+### Consequences
+
+**Positive**:
+- ✅ Private network 완벽 지원
+- ✅ Clique PoA로 빠른 블록 생성 (3초)
+- ✅ JSON-RPC/WebSocket 표준 준수
+- ✅ Docker Compose 배포 용이
+- ✅ 향후 Permissioning 확장 가능
+
+**Negative**:
+- ⚠️ Anvil보다 무거움 (메모리 사용량 증가)
+- ⚠️ 초기 설정 복잡도 (genesis.json, bootnode 등)
+- ⚠️ 로컬 개발 시 오버헤드
+
+**Mitigation**:
+- 로컬 빠른 테스트는 Anvil 병행 사용
+- Docker Compose로 설정 간소화
+- 문서화로 러닝 커브 완화
+
+### Alternatives Considered
+- ❌ **Anvil**: 개발용으로 적합하나 Production 부적합
+- ❌ **Ganache**: 개발 중단, 업데이트 부족
+- ❌ **Geth**: PoA 지원 제한적, Besu가 더 나은 Private network 기능
+- ✅ **Besu**: Enterprise 요구사항 충족
+
+### References
+- [Hyperledger Besu Documentation](https://besu.hyperledger.org/)
+- [Besu vs Geth Comparison](https://www.hyperledger.org/blog/2021/06/02/hyperledger-besu-vs-geth)
+
+---
+
+## ADR-006: Clique PoA Consensus 채택
+
+### Date
+2026-01-12
+
+### Status
+✅ Accepted
+
+### Context
+Private network의 consensus mechanism 선택이 필요했습니다.
+
+**후보 Consensus**:
+1. **PoW (Proof of Work)**: 원본 Ethereum 방식
+2. **Clique PoA (Proof of Authority)**: Geth/Besu 지원
+3. **IBFT 2.0**: Istanbul Byzantine Fault Tolerant
+4. **QBFT**: Quorum Byzantine Fault Tolerant
+
+**요구사항**:
+- 빠른 블록 생성 (1-5초)
+- 단일 노드에서도 작동
+- 향후 멀티 노드 확장 가능
+- 낮은 리소스 사용
+
+### Decision
+**Clique PoA Consensus** 채택
+
+**설정**:
+- Block period: 3초
+- Epoch length: 30,000 블록
+- 초기: Single signer
+- 향후: 4 signers (Multi-node)
+
+**선택 이유**:
+1. **빠른 블록 생성**: PoW 대비 1000배 빠름
+2. **단순성**: Single-node 테스트 가능
+3. **확장성**: 동적으로 signer 추가/제거
+4. **성숙도**: Ethereum Rinkeby 테스트넷 검증
+5. **리소스 효율**: CPU/메모리 사용 최소화
+
+### Consequences
+
+**Positive**:
+- ✅ 3초 블록 타임으로 빠른 트랜잭션 확정
+- ✅ 개발 환경에서 단일 노드로 테스트 가능
+- ✅ Gas 비용 제어 가능 (private network)
+- ✅ Finality 보장 (51% attack 불필요)
+
+**Negative**:
+- ⚠️ Centralization 리스크 (PoA 특성)
+- ⚠️ Signer key 관리 필요
+- ⚠️ Public network 이전 시 PoS로 전환 필요
+
+**Mitigation**:
+- 프로덕션: 최소 4개 signer 운영
+- Signer key: HSM 또는 KMS 관리
+- Public 전환 계획: Layer 2 고려
+
+### Alternatives Considered
+- ❌ **PoW**: 느림, 리소스 낭비
+- ❌ **IBFT 2.0**: 복잡, 최소 4 validators 필요
+- ❌ **QBFT**: Enterprise 초점, 과도한 기능
+- ✅ **Clique**: 개발 용이성 + Production 가능
+
+### References
+- [EIP-225: Clique PoA](https://eips.ethereum.org/EIPS/eip-225)
+- [Besu Clique Configuration](https://besu.hyperledger.org/en/stable/HowTo/Configure/Consensus-Protocols/Clique/)
+
+---
+
+## ADR-007: EVM Version London 설정
+
+### Date
+2026-01-12
+
+### Status
+✅ Accepted
+
+### Context
+Solidity 0.8.20+ 컴파일 시 PUSH0 opcode 사용으로 배포 실패가 발생했습니다.
+
+**문제 상황**:
+- Solidity 0.8.33 컴파일 → PUSH0 opcode 포함
+- Besu London hardfork → PUSH0 미지원 (Shanghai부터 지원)
+- 배포 트랜잭션 `status: 0 (failed)`
+
+**해결 옵션**:
+1. Solidity 버전 다운그레이드 (0.8.19 이하)
+2. EVM version 명시적 지정 (foundry.toml)
+3. Genesis에 Shanghai hardfork 추가
+
+### Decision
+**EVM Version = London** 설정 (`foundry.toml`)
+
+```toml
+[profile.default]
+evm_version = "london"
+```
+
+**선택 이유**:
+1. **Solidity 최신 버전 유지**: 0.8.33 계속 사용
+2. **Besu 호환성**: London은 Besu가 완전 지원
+3. **Shanghai 회피**: Withdrawals 필요 → Clique PoA 비호환
+4. **간단한 설정**: 한 줄 추가로 해결
+
+### Consequences
+
+**Positive**:
+- ✅ PUSH0 opcode 생성 방지
+- ✅ Besu London hardfork와 완벽 호환
+- ✅ 배포 성공 (4.5M gas)
+- ✅ Solidity 최신 기능 사용 가능
+
+**Negative**:
+- ⚠️ PUSH0 최적화 포기 (미미한 가스 절감 손실)
+- ⚠️ Shanghai 이후 기능 사용 불가
+- ⚠️ 향후 Mainnet 배포 시 재컴파일 필요
+
+**Mitigation**:
+- Production 배포 시 EVM 버전 재검토
+- Layer 2 (Arbitrum, Optimism)는 Shanghai 지원
+
+### Alternatives Considered
+- ❌ **Solidity 다운그레이드**: 최신 보안 패치 포기
+- ❌ **Shanghai hardfork 추가**: Withdrawals로 Clique 블록 생성 실패
+- ✅ **London EVM 설정**: 간단하고 효과적
+
+### Technical Details
+
+**Shanghai 시도 시 에러**:
+```
+withdrawals must not be null when Withdrawals are activated
+Invalid block mined, could not be imported to local chain
+```
+
+**London 설정 후 성공**:
+```
+✅ VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+✅ Gas Used: 4,583,756
+✅ Block: 9
+```
+
+### References
+- [EIP-3855: PUSH0 Instruction](https://eips.ethereum.org/EIPS/eip-3855)
+- [Solidity EVM Version](https://docs.soliditylang.org/en/latest/using-the-compiler.html#setting-the-evm-version)
+
+---
+
+## ADR-008: Single-Node 초기 구성
+
+### Date
+2026-01-12
+
+### Status
+✅ Accepted (Temporary)
+
+### Context
+Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
+
+**트러블슈팅 과정**:
+- 초기: `--sync-mode=FULL` 설정
+- 문제: `Waiting for 5 peers minimum`
+- 블록 생성 중지: `eth_blockNumber` 계속 0x0
+
+**해결 과정**:
+1. `--sync-min-peers=0` 시도 → 무시됨
+2. Besu 로그: `--sync-min-peers is ignored in FULL sync-mode`
+3. `--sync-mode` 제거 → 블록 생성 시작!
+
+### Decision
+**Single-Node 구성** (개발 단계)
+
+**설정**:
+- Besu node-1: Clique signer
+- `--sync-mode` 제거 (기본값 사용)
+- `--node-private-key-file` 지정
+- `--discovery-enabled=false`
+
+**선택 이유**:
+1. **빠른 개발**: 인프라 복잡도 최소화
+2. **디버깅 용이**: 단일 노드로 문제 격리
+3. **리소스 절약**: 개발 환경 부담 감소
+4. **향후 확장 가능**: 4-node로 전환 계획
+
+### Consequences
+
+**Positive**:
+- ✅ Genesis부터 블록 생성 성공
+- ✅ 개발 속도 향상
+- ✅ 메모리/CPU 사용량 1/4로 감소
+- ✅ Docker Compose 단순화
+
+**Negative**:
+- ⚠️ Centralization (Single point of failure)
+- ⚠️ Network resilience 테스트 불가
+- ⚠️ Peer-to-peer sync 검증 안됨
+
+**Mitigation**:
+- Production 배포 전 Multi-node 전환
+- Phase 1.5: 4-node network 구축 및 테스트
+- Static peers 설정 문서화
+
+### Future Plan
+
+**Phase 1 (Current)**: Single-node
+- ✅ Smart Contract 개발 및 테스트
+- ✅ Backend/Frontend 통합
+
+**Phase 1.5 (Week 2)**: Multi-node Expansion
+- 🔄 besu-node-2, 3, 4 추가
+- 🔄 Static peers 설정
+- 🔄 Consensus 안정성 테스트
+
+**Production**: Minimum 4 nodes
+- 🔜 Geographic distribution
+- 🔜 Load balancing
+- 🔜 Monitoring & Alerting
+
+### References
+- [Besu Sync Modes](https://besu.hyperledger.org/en/stable/Reference/CLI/CLI-Syntax/#sync-mode)
+- [Clique Minimum Nodes](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-225.md#recommended-validator-set-size)
+
+---
+
 ## 추가 예정 ADR
 
-- ADR-005: DID Registry 다중 Oracle (Phase 1.5)
-- ADR-006: Emergency Recovery Guardian 구조
-- ADR-007: ERC-4337 Account Abstraction (Phase 2)
-- ADR-008: Gas Optimization 전략
-- ADR-009: Layer 2 Migration 계획
+- ADR-009: DID Registry 다중 Oracle (Phase 1.5)
+- ADR-010: Emergency Recovery Guardian 구조
+- ADR-011: ERC-4337 Account Abstraction (Phase 2)
+- ADR-012: Gas Optimization 전략
+- ADR-013: Layer 2 Migration 계획
 
 ---
 
