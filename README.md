@@ -21,6 +21,34 @@ LegacyChain은 블록체인 기반 디지털 자산 상속 플랫폼입니다. �
 - **Gas Optimization**: EIP-1167 Clone 패턴으로 94.4% 가스 절감
 - **Emergency Pause**: 긴급 상황 대응
 
+## Technology Stack
+
+**Smart Contracts:**
+- Solidity 0.8.33
+- Foundry (Forge, Cast, Anvil)
+- OpenZeppelin Contracts 5.5.0
+
+**Blockchain:**
+- Hyperledger Besu 24.12.0
+- Clique PoA Consensus
+
+**Backend:**
+- Go 1.25.0
+- Fiber v3 Framework
+- GORM (PostgreSQL Driver)
+- PostgreSQL 16
+- Redis 7
+- go-ethereum
+
+**Frontend:**
+- Next.js 14
+- TypeScript
+- Ethers.js
+
+**Infrastructure:**
+- Docker & Docker Compose
+- GitHub Actions (CI/CD)
+
 ## 아키텍처
 
 ```
@@ -372,41 +400,13 @@ nano docker/.env
 nano backend/.env
 nano contracts/.env
 ```
-## �Documentation
+## Documentation
 
 - [PRD (Product Requirements Document)](docs/PRD.md)
 - [Development Log](docs/DEV_LOG.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 - [Security Report](docs/SECURITY_REPORT.md)
 - [API Specification](docs/API_SPEC.md)
-
-## Technology Stack
-
-**Smart Contracts:**
-- Solidity 0.8.33
-- Foundry (Forge, Cast, Anvil)
-- OpenZeppelin Contracts 5.5.0
-
-**Blockchain:**
-- Hyperledger Besu 24.12.0
-- Clique PoA Consensus
-
-**Backend:**
-- Go 1.25.0
-- Fiber v3 Framework
-- GORM (PostgreSQL Driver)
-- PostgreSQL 16
-- Redis 7
-- go-ethereum
-
-**Frontend:**
-- Next.js 14
-- TypeScript
-- Ethers.js
-
-**Infrastructure:**
-- Docker & Docker Compose
-- GitHub Actions (CI/CD)
 
 ## License
 

@@ -1183,3 +1183,283 @@ go mod tidy
 - Database connection pool 설정 필요 (고트래픽 대비)
 
 ---
+
+### [2026-01-12] Day 13: Backend 블록체인 연동 완료 및 Frontend 초기 설정
+
+#### 작업 개요
+Backend API와 Besu 네트워크 완전 연동. abigen으로 Go 바인딩 생성 및 블록체인 서비스 구현 완료. Frontend Web3 라이브러리 설치 및 컨트랙트 설정.
+
+#### 설계 판단 (Design Decision)
+
+**블록체인 연동 아키텍처:**
+- **서비스 레이어 분리**: `services/blockchain.go`에서 모든 블록체인 상호작용 처리
+- **ABI 바인딩 자동 생성**: abigen 사용으로 타입 안전성 확보
+- **트랜잭션 관리**: Private Key 기반 서명, Gas Price 자동 추정
+- **이벤트 파싱**: VaultCreated, HeartbeatRevealed 등 이벤트 자동 파싱
+
+#### 1. ABI 바인딩 생성
+
+##### 1.1 ABI 추출
+```bash
+cd /root/legacychain/contracts
+forge build
+
+# Foundry artifact에서 ABI만 추출
+cat out/VaultFactory.sol/VaultFactory.json | jq '.abi' > /tmp/VaultFactory.abi
+cat out/IndividualVault.sol/IndividualVault.json | jq '.abi' > /tmp/IndividualVault.abi
+```
+
+**이유**: Foundry의 JSON 파일은 전체 메타데이터 포함. abigen은 순수 ABI만 필요.
+
+##### 1.2 Go 바인딩 생성
+```bash
+cd /root/legacychain/backend
+mkdir -p pkg/bindings
+
+# VaultFactory 바인딩
+/root/go/bin/abigen \
+  --abi /tmp/VaultFactory.abi \
+  --pkg bindings \
+  --type VaultFactory \
+  --out pkg/bindings/vaultfactory.go
+
+# IndividualVault 바인딩
+/root/go/bin/abigen \
+  --abi /tmp/IndividualVault.abi \
+  --pkg bindings \
+  --type IndividualVault \
+  --out pkg/bindings/individualvault.go
+```
+
+**생성된 파일:**
+- `pkg/bindings/vaultfactory.go` (~35KB)
+- `pkg/bindings/individualvault.go` (~101KB)
+
+**포함 내용:**
+- 타입 안전한 함수 래퍼
+- 이벤트 구조체 정의
+- ABI 메타데이터
+- Contract 인스턴스 생성자
+
+#### 2. 블록체인 서비스 구현 (`services/blockchain.go`)
+
+##### 2.1 핵심 기능
+
+**서비스 초기화:**
+```go
+func NewBlockchainService(cfg *config.Config) (*BlockchainService, error) {
+    // Ethereum 노드 연결
+    client, err := ethclient.Dial(cfg.Blockchain.RPCURL)
+    
+    // Chain ID 가져오기
+    chainID, err := client.ChainID(context.Background())
+    
+    // VaultFactory 인스턴스 생성
+    factory, err := bindings.NewVaultFactory(factoryAddress, client)
+    
+    return &BlockchainService{...}, nil
+}
+```
+
+**Vault 생성:**
+```go
+func (s *BlockchainService) CreateVault(
+    privateKey *ecdsa.PrivateKey,
+    heirs []common.Address,
+    heirShares []*big.Int,
+    heartbeatInterval *big.Int,
+    gracePeriod *big.Int,
+    requiredApprovals *big.Int,
+) (vaultAddress common.Address, txHash common.Hash, err error)
+```
+
+**구현 특징:**
+- Private Key로 트랜잭션 서명
+- Gas Price 자동 추정 (`SuggestGasPrice`)
+- 트랜잭션 대기 (`bind.WaitMined`)
+- VaultCreated 이벤트 파싱으로 Vault 주소 추출
+
+**Heartbeat 관련:**
+```go
+func (s *BlockchainService) CommitHeartbeat(...) (txHash common.Hash, err error)
+func (s *BlockchainService) RevealHeartbeat(...) (txHash common.Hash, err error)
+```
+
+**상속 관련:**
+```go
+func (s *BlockchainService) ApproveInheritance(...) (txHash common.Hash, err error)
+func (s *BlockchainService) ClaimInheritance(...) (txHash common.Hash, amount *big.Int, err error)
+```
+
+**View 함수:**
+```go
+func (s *BlockchainService) GetVaultConfig(vaultAddress common.Address) (*bindings.IndividualVaultVaultConfig, error)
+func (s *BlockchainService) GetVaultBalance(vaultAddress common.Address) (*big.Int, error)
+func (s *BlockchainService) GetOwnerVaults(owner common.Address) ([]common.Address, error)
+func (s *BlockchainService) IsHeir(vaultAddress, heirAddress common.Address) (bool, error)
+```
+
+##### 2.2 헬퍼 함수
+
+**트랜잭터 생성:**
+```go
+func (s *BlockchainService) getTransactor(privateKey *ecdsa.PrivateKey) (*bind.TransactOpts, error) {
+    auth, err := bind.NewKeyedTransactorWithChainID(privateKey, s.chainID)
+    gasPrice, err := s.client.SuggestGasPrice(ctx)
+    auth.GasPrice = gasPrice
+    auth.GasLimit = uint64(3000000) // 3M gas limit
+    return auth, nil
+}
+```
+
+**이벤트 파싱:**
+- `parseVaultCreatedEvent()`: VaultCreated 이벤트에서 Vault 주소 추출
+- `parseInheritanceClaimedEvent()`: InheritanceClaimed 이벤트에서 금액 추출
+
+**Private Key 유틸리티:**
+- `ParsePrivateKey()`: Hex string → ecdsa.PrivateKey
+- `GetAddressFromPrivateKey()`: Private Key → Ethereum Address
+
+#### 3. 트러블슈팅
+
+##### Issue 1: Case-insensitive 파일명 충돌
+**문제**: 
+```
+IndividualVault.go 와 individualvault.go
+VaultFactory.go 와 vaultfactory.go
+```
+
+**에러**:
+```
+case-insensitive file name collision
+```
+
+**해결**: 대문자 파일 삭제, 소문자 파일만 유지
+```bash
+cd /root/legacychain/backend/pkg/bindings
+rm -f IndividualVault.* VaultFactory.*
+```
+
+**근거**: 이전 수동 생성 파일과 abigen 생성 파일이 충돌. abigen 생성 파일만 사용.
+
+#### 4. 빌드 검증
+
+```bash
+cd /root/legacychain/backend
+go mod tidy
+go build -o bin/server ./cmd/main.go
+# 성공
+```
+
+**결과**: 모든 의존성 정상 해결, 컴파일 성공
+
+#### 5. Frontend 초기 설정
+
+##### 5.1 Web3 라이브러리 설치
+```bash
+cd /root/legacychain/frontend
+npm install --save ethers@^6 wagmi@^2 viem@^2 @tanstack/react-query@^5
+```
+
+**설치된 패키지:**
+- ethers v6.x: Ethereum 상호작용
+- wagmi v2.x: React Hooks for Ethereum
+- viem v2.x: TypeScript Ethereum library
+- @tanstack/react-query v5.x: 비동기 상태 관리
+
+**설치 이유**:
+- ethers: 성숙한 라이브러리, 광범위한 문서
+- wagmi: React 통합, 자동 리렌더링
+- viem: 타입 안전성, 작은 번들 크기
+- react-query: 서버 상태 관리, 캐싱
+
+##### 5.2 컨트랙트 설정 파일
+
+**`lib/contracts.ts`:**
+```typescript
+export const VAULT_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+export const CHAIN_ID = 1337 // Besu Local
+
+export const VAULT_FACTORY_ABI = [...]  // VaultFactory ABI
+export const INDIVIDUAL_VAULT_ABI = [...] // IndividualVault ABI
+```
+
+**포함 내용:**
+- VaultFactory ABI (createVault, getOwnerVaults 등)
+- IndividualVault ABI (commitHeartbeat, revealHeartbeat, approveInheritance 등)
+- 환경 변수 기반 주소 설정
+- TypeScript const assertions (`as const`)
+
+**`lib/wagmi.ts`:**
+```typescript
+export const besuLocal = {
+  id: 1337,
+  name: 'Besu Local',
+  nativeCurrency: { decimals: 18, name: 'Ether', symbol: 'ETH' },
+  rpcUrls: { default: { http: ['http://localhost:8545'] } },
+  testnet: true,
+}
+
+export const config = createConfig({
+  chains: [besuLocal],
+  transports: { [besuLocal.id]: http() },
+})
+```
+
+#### 6. 완료된 작업 요약
+
+**Backend:**
+- ✅ ECDSA 서명 검증 (이미 구현됨)
+- ✅ Heartbeat Handler (이미 구현됨)
+- ✅ Heir Handler (이미 구현됨)
+- ✅ ABI 바인딩 생성 (vaultfactory.go, individualvault.go)
+- ✅ 블록체인 서비스 구현 (services/blockchain.go)
+- ✅ 빌드 검증 완료
+
+**Frontend:**
+- ✅ Web3 라이브러리 설치 (ethers, wagmi, viem, react-query)
+- ✅ 컨트랙트 설정 파일 (lib/contracts.ts)
+- ✅ Wagmi Config (lib/wagmi.ts)
+
+#### 7. 다음 단계
+
+**Backend:**
+- [ ] API 통합 테스트 작성
+- [ ] Besu 네트워크 연동 테스트
+- [ ] .env 파일 설정 및 환경 변수 검증
+
+**Frontend:**
+- [ ] Wallet 연결 컴포넌트 (`components/WalletConnect.tsx`)
+- [ ] Vault 생성 페이지 (`app/vault/create/page.tsx`)
+- [ ] Dashboard UI (`app/dashboard/page.tsx`)
+- [ ] Heartbeat 관리 (`app/vault/[id]/page.tsx`)
+
+**Infrastructure:**
+- [ ] Docker Compose 전체 스택 테스트
+- [ ] 환경 변수 문서화
+- [ ] README 업데이트
+
+#### 8. 시간 기록
+- ABI 바인딩 생성: ~10분
+- 블록체인 서비스 구현: ~30분
+- 빌드 문제 해결: ~5분
+- Frontend 초기 설정: ~10분
+- **Day 13 소요 시간**: ~55분
+- **누적 시간**: ~5시간 35분
+
+#### 9. 기술적 노트
+
+**Go 바인딩 품질:**
+- 자동 생성된 코드가 타입 안전
+- 컴파일 타임 에러 검출
+- 리플렉션 없이 성능 우수
+
+**Frontend 아키텍처:**
+- Wagmi로 wallet 상태 자동 관리
+- React Query로 블록체인 데이터 캐싱
+- TypeScript로 타입 안전성 확보
+
+---
+
+**Last Updated**: 2026-01-12  
+**Next**: Frontend UI 구현 및 End-to-End 테스트

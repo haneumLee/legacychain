@@ -761,14 +761,196 @@ backend/
 
 ---
 
-## 추가 예정 ADR
+## ADR-010: abigen 기반 Go 바인딩 자동 생성
 
-- ADR-010: DID Registry 다중 Oracle (Phase 1.5)
-- ADR-011: Emergency Recovery Guardian 구조
-- ADR-012: ERC-4337 Account Abstraction (Phase 2)
-- ADR-013: Gas Optimization 전략
-- ADR-014: Layer 2 Migration 계획
+### Date
+2026-01-12
+
+### Status
+Accepted
+
+### Context
+Backend에서 Smart Contract와 상호작용하기 위한 방법이 필요했습니다.
+
+**후보 방법**:
+1. **수동 ABI 파싱**: JSON ABI를 직접 파싱하여 함수 호출
+2. **ethers.js 스타일 동적 바인딩**: Reflection 기반 호출
+3. **abigen 기반 정적 바인딩**: 컴파일 타임 타입 생성
+4. **수동 Go 래퍼 작성**: ABI 함수마다 직접 코딩
+
+**요구사항**:
+- 타입 안전성 (컴파일 타임 에러 검출)
+- 이벤트 파싱 자동화
+- 유지보수 용이성 (Contract 변경 시 자동 반영)
+- 성능 (리플렉션 오버헤드 최소화)
+
+### Decision
+**abigen (go-ethereum)** 도구로 Go 바인딩 자동 생성
+
+**프로세스**:
+1. Foundry로 컨트랙트 컴파일 (`forge build`)
+2. ABI 추출 (`jq '.abi'`)
+3. abigen으로 Go 코드 생성
+4. Backend에서 타입 안전하게 사용
+
+**구현**:
+```bash
+# VaultFactory 바인딩 생성
+/root/go/bin/abigen \
+  --abi /tmp/VaultFactory.abi \
+  --pkg bindings \
+  --type VaultFactory \
+  --out pkg/bindings/vaultfactory.go
+
+# IndividualVault 바인딩 생성
+/root/go/bin/abigen \
+  --abi /tmp/IndividualVault.abi \
+  --pkg bindings \
+  --type IndividualVault \
+  --out pkg/bindings/individualvault.go
+```
+
+**생성된 코드 특징**:
+- 타입 안전한 함수 래퍼 (컴파일 타임 검증)
+- 이벤트 구조체 자동 정의
+- ABI 메타데이터 포함 (런타임 디코딩)
+- Contract 인스턴스 생성자
+
+### Consequences
+
+**Positive**:
+- **타입 안전성**: 잘못된 파라미터 타입은 컴파일 에러
+  ```go
+  // 컴파일 에러: cannot use string as *big.Int
+  vault.CommitHeartbeat(opts, "wrong type")
+  ```
+- **자동 이벤트 파싱**: Event 구조체 자동 생성
+  ```go
+  type VaultFactoryVaultCreated struct {
+      Owner common.Address
+      Vault common.Address
+      VaultId *big.Int
+  }
+  ```
+- **유지보수 용이**: Contract 변경 시 `abigen` 재실행만으로 동기화
+- **성능 우수**: 리플렉션 없이 직접 호출 (zero overhead)
+- **go-ethereum 네이티브**: 트랜잭션, 서명, 이벤트 리스닝 완벽 통합
+
+**Negative**:
+- **빌드 스텝 추가**: Contract 변경마다 ABI 재생성 필요
+- **파일 크기**: 생성된 Go 파일이 큼 (~35KB, ~101KB)
+- **Foundry 의존성**: JSON 파싱에 jq 필요
+
+**Mitigation**:
+- Makefile로 빌드 자동화:
+  ```makefile
+  .PHONY: bindings
+  bindings:
+      cd ../contracts && forge build
+      cat ../contracts/out/VaultFactory.sol/VaultFactory.json | jq '.abi' > /tmp/VaultFactory.abi
+      abigen --abi /tmp/VaultFactory.abi --pkg bindings --type VaultFactory --out pkg/bindings/vaultfactory.go
+  ```
+- CI/CD 파이프라인에 통합
+- Git에 생성 파일 커밋 (검토 가능)
+
+### Technical Details
+
+**생성된 함수 예시**:
+```go
+// Read-only call
+func (_VaultFactory *VaultFactoryCaller) GetOwnerVaults(
+    opts *bind.CallOpts, 
+    _owner common.Address,
+) ([]common.Address, error)
+
+// State-changing transaction
+func (_VaultFactory *VaultFactoryTransactor) CreateVault(
+    opts *bind.TransactOpts,
+    _heirs []common.Address,
+    _heirShares []*big.Int,
+    _heartbeatInterval *big.Int,
+    _gracePeriod *big.Int,
+    _requiredApprovals *big.Int,
+) (*types.Transaction, error)
+```
+
+**사용 예시**:
+```go
+// Factory 인스턴스 생성
+factory, err := bindings.NewVaultFactory(factoryAddress, client)
+
+// View 함수 호출
+opts := &bind.CallOpts{Context: ctx}
+vaults, err := factory.GetOwnerVaults(opts, ownerAddress)
+
+// 트랜잭션 전송
+auth := getTransactor(privateKey)
+tx, err := factory.CreateVault(auth, heirs, shares, interval, grace, approvals)
+
+// 트랜잭션 대기
+receipt, err := bind.WaitMined(ctx, client, tx)
+```
+
+### Alternatives Considered
+
+**수동 ABI 파싱 (기각)**:
+- JSON ABI를 직접 파싱하여 `abi.Pack()` 사용
+- 타입 안전성 없음 (런타임 에러)
+- 코드 장황, 에러 prone
+
+**ethers.js 스타일 (기각)**:
+- Reflection 기반 동적 바인딩
+- Go는 리플렉션 오버헤드 큼
+- 타입 체크 불가
+
+**수동 래퍼 작성 (기각)**:
+- ABI 함수마다 수동 코딩
+- 유지보수 어려움 (Contract 변경마다 수동 수정)
+- 실수 가능성 높음
+
+**abigen (선택)**:
+- 타입 안전 + 자동화 + 성능
+- go-ethereum 공식 지원
+- 업계 표준
+
+### Troubleshooting
+
+**Issue 1: Case-insensitive 파일명 충돌**
+```
+case-insensitive file name collision:
+"IndividualVault.go" and "individualvault.go"
+```
+
+**해결**: 수동 생성 파일 삭제, abigen 생성 파일만 사용
+```bash
+rm -f pkg/bindings/IndividualVault.* pkg/bindings/VaultFactory.*
+```
+
+**Issue 2: ABI 파싱 실패**
+```
+Failed to generate ABI binding: json: cannot unmarshal object
+```
+
+**해결**: Foundry JSON에서 ABI만 추출
+```bash
+cat out/VaultFactory.sol/VaultFactory.json | jq '.abi' > VaultFactory.abi
+```
+
+### References
+- [abigen Documentation](https://geth.ethereum.org/docs/developers/dapp-developer/native-bindings)
+- [go-ethereum bindings](https://pkg.go.dev/github.com/ethereum/go-ethereum/accounts/abi/bind)
+- [EIP-ABI Specification](https://docs.soliditylang.org/en/latest/abi-spec.html)
 
 ---
 
-**Last Updated**: 2026-01-13  
+## 추가 예정 ADR
+
+- ADR-011: DID Registry 다중 Oracle (Phase 1.5)
+- ADR-012: Emergency Recovery Guardian 구조
+- ADR-013: ERC-4337 Account Abstraction (Phase 2)
+- ADR-014: Gas Optimization 전략
+- ADR-015: Layer 2 Migration 계획
+
+---
+
+**Last Updated**: 2026-01-12  
