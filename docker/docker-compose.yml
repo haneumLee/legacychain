@@ -6,11 +6,14 @@ services:
   besu-node-1:
     image: hyperledger/besu:24.12.0
     container_name: legacychain-besu-node-1
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - NODE_PRIVATE_KEY=${NODE1_PRIVATE_KEY}
     command: >
       --genesis-file=/config/genesis.json
       --network-id=1337
       --data-path=/data
-      --node-private-key-file=/config/node1-key
+      --node-private-key-file=/config/node-key
       --host-allowlist="*"
       --rpc-http-enabled
       --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
@@ -33,10 +36,12 @@ services:
       - "30303:30303"
     volumes:
       - ./besu/genesis.json:/config/genesis.json
-      - ./besu/node1-key:/config/node1-key
+      - ./besu/entrypoint.sh:/entrypoint.sh:ro
+      - ./besu/static-nodes.json:/data/static-nodes.json
       - besu-node-1-data:/data
     networks:
-      - legacychain-network
+      legacychain-network:
+        ipv4_address: 172.20.0.11
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8545"]
@@ -47,10 +52,14 @@ services:
   besu-node-2:
     image: hyperledger/besu:24.12.0
     container_name: legacychain-besu-node-2
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - NODE_PRIVATE_KEY=${NODE2_PRIVATE_KEY}
     command: >
       --genesis-file=/config/genesis.json
       --network-id=1337
       --data-path=/data
+      --node-private-key-file=/config/node-key
       --host-allowlist="*"
       --rpc-http-enabled
       --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
@@ -61,24 +70,33 @@ services:
       --p2p-port=30303
       --discovery-enabled=false
       --miner-enabled
-      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+      --miner-coinbase=0x30D4601B89E08b10b519f9ffFEAD36751F714b1c
     ports:
       - "8547:8545"
       - "30304:30303"
     volumes:
       - ./besu/genesis.json:/config/genesis.json
+      - ./besu/entrypoint.sh:/entrypoint.sh:ro
+      - ./besu/static-nodes.json:/data/static-nodes.json
       - besu-node-2-data:/data
     networks:
-      - legacychain-network
+      legacychain-network:
+        ipv4_address: 172.20.0.12
+    depends_on:
+      - besu-node-1
     restart: unless-stopped
 
   besu-node-3:
     image: hyperledger/besu:24.12.0
     container_name: legacychain-besu-node-3
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - NODE_PRIVATE_KEY=${NODE3_PRIVATE_KEY}
     command: >
       --genesis-file=/config/genesis.json
       --network-id=1337
       --data-path=/data
+      --node-private-key-file=/config/node-key
       --host-allowlist="*"
       --rpc-http-enabled
       --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
@@ -89,24 +107,33 @@ services:
       --p2p-port=30303
       --discovery-enabled=false
       --miner-enabled
-      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+      --miner-coinbase=0xDc7db81ff06FBfA3fFEde0Bc643957E6584F11eC
     ports:
       - "8548:8545"
       - "30305:30303"
     volumes:
       - ./besu/genesis.json:/config/genesis.json
+      - ./besu/entrypoint.sh:/entrypoint.sh:ro
+      - ./besu/static-nodes.json:/data/static-nodes.json
       - besu-node-3-data:/data
     networks:
-      - legacychain-network
+      legacychain-network:
+        ipv4_address: 172.20.0.13
+    depends_on:
+      - besu-node-1
     restart: unless-stopped
 
   besu-node-4:
     image: hyperledger/besu:24.12.0
     container_name: legacychain-besu-node-4
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - NODE_PRIVATE_KEY=${NODE4_PRIVATE_KEY}
     command: >
       --genesis-file=/config/genesis.json
       --network-id=1337
       --data-path=/data
+      --node-private-key-file=/config/node-key
       --host-allowlist="*"
       --rpc-http-enabled
       --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
@@ -117,15 +144,20 @@ services:
       --p2p-port=30303
       --discovery-enabled=false
       --miner-enabled
-      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+      --miner-coinbase=0x75364Fd8b8529409aF49cC38273312147d46dD95
     ports:
       - "8549:8545"
       - "30306:30303"
     volumes:
       - ./besu/genesis.json:/config/genesis.json
+      - ./besu/entrypoint.sh:/entrypoint.sh:ro
+      - ./besu/static-nodes.json:/data/static-nodes.json
       - besu-node-4-data:/data
     networks:
-      - legacychain-network
+      legacychain-network:
+        ipv4_address: 172.20.0.14
+    depends_on:
+      - besu-node-1
     restart: unless-stopped
 
   # ============ PostgreSQL ============
@@ -182,3 +214,6 @@ volumes:
 networks:
   legacychain-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

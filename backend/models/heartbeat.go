@@ -7,13 +7,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type HeartbeatStatus string
+
+const (
+	HeartbeatStatusCommitted HeartbeatStatus = "committed"
+	HeartbeatStatusRevealed  HeartbeatStatus = "revealed"
+	HeartbeatStatusFailed    HeartbeatStatus = "failed"
+)
+
 type Heartbeat struct {
-	ID        uuid.UUID      `gorm:"type:uuid;primary_key" json:"id"`
-	VaultID   uuid.UUID      `gorm:"type:uuid;not null;index" json:"vault_id"`
-	TxHash    string         `gorm:"type:varchar(66);uniqueIndex;not null" json:"tx_hash"`
-	Timestamp time.Time      `gorm:"not null;index" json:"timestamp"`
-	CreatedAt time.Time      `json:"created_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          uuid.UUID       `gorm:"type:uuid;primary_key" json:"id"`
+	VaultID     uuid.UUID       `gorm:"type:uuid;not null;index" json:"vault_id"`
+	CommitHash  string          `gorm:"type:varchar(66)" json:"commit_hash"`  // Hash of the commit
+	CommitTxHash string         `gorm:"type:varchar(66)" json:"commit_tx_hash"` // Commit transaction hash
+	RevealTxHash string         `gorm:"type:varchar(66)" json:"reveal_tx_hash"` // Reveal transaction hash
+	Nonce       string          `gorm:"type:varchar(100)" json:"nonce"`       // Nonce used for commit
+	Status      HeartbeatStatus `gorm:"type:varchar(20);not null;default:'committed'" json:"status"`
+	CommittedAt time.Time       `gorm:"index" json:"committed_at"`
+	RevealedAt  *time.Time      `json:"revealed_at,omitempty"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt  `gorm:"index" json:"-"`
 
 	// Relationships
 	Vault Vault `gorm:"foreignKey:VaultID" json:"vault,omitempty"`

@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 목차
+## 목차
 
 1. [보안 분석 (Slither)](#보안-분석-slither)
 2. [테스트 커버리지](#테스트-커버리지)
@@ -25,11 +25,11 @@ slither src/IndividualVault.sol --exclude-informational --exclude-low
 
 ### 결과 요약
 
-#### ✅ High/Medium Severity Issues: **0개**
+#### High/Medium Severity Issues: **0개**
 
 모든 High 및 Medium severity 취약점 없음 확인.
 
-#### ⚠️ Low Severity Issues
+#### Low Severity Issues
 
 **1. Variable Shadowing (Informational)**
 - **위치**: `IndividualVault.sol:75`
@@ -83,12 +83,12 @@ forge coverage --report summary
 
 ### 분석
 
-**✅ 강점**:
+**강점**:
 - 전체 라인 커버리지 **90%** 달성
 - 핵심 로직(Statement) **92%** 커버
 - IndividualVault 핵심 함수 **85%** 테스트
 
-**⚠️ 개선 가능 영역**:
+**개선 가능 영역**:
 - Branch coverage **70%** (조건문 일부 미테스트)
 - VaultFactory 함수 커버리지 **60%** (View 함수 일부 미테스트)
 
@@ -113,18 +113,18 @@ IndividualVaultTest:test_MultipleHeirsClaim()       (gas: 863,851)
 
 | 함수 | Min | Average | Median | Max | 분석 |
 |------|-----|---------|--------|-----|------|
-| **createVault** | 24,445 | 440,351 | 486,289 | 486,289 | ✅ 우수 |
-| **commitHeartbeat** | 4,908 | 18,878 | 27,357 | 27,357 | ✅ 우수 |
-| **revealHeartbeat** | 7,986 | 23,350 | 13,936 | 48,128 | ✅ 우수 |
-| **approveInheritance** | 9,464 | 43,446 | 55,096 | 55,096 | ✅ 우수 |
-| **claimInheritance** | 23,411 | 60,874 | 63,506 | 97,045 | ✅ 우수 |
+| **createVault** | 24,445 | 440,351 | 486,289 | 486,289 | 우수 |
+| **commitHeartbeat** | 4,908 | 18,878 | 27,357 | 27,357 | 우수 |
+| **revealHeartbeat** | 7,986 | 23,350 | 13,936 | 48,128 | 우수 |
+| **approveInheritance** | 9,464 | 43,446 | 55,096 | 55,096 | 우수 |
+| **claimInheritance** | 23,411 | 60,874 | 63,506 | 97,045 | 우수 |
 
 ### 최적화 성과
 
 **1. EIP-1167 Clone Pattern**
 - **Before**: ~800,000 gas (직접 배포)
 - **After**: ~45,000 gas (clone)
-- **절감**: **94.4%** 🎉
+- **절감**: **94.4%** 
 
 **2. Commit-Reveal Heartbeat**
 - Commit: ~27k gas
@@ -156,7 +156,7 @@ IndividualVaultTest:test_MultipleHeirsClaim()       (gas: 863,851)
 
 ## 권장 사항
 
-### ✅ 즉시 배포 가능
+### 즉시 배포 가능
 
 현재 코드는 **프로덕션 배포에 적합**합니다:
 - High/Medium severity 보안 이슈 **0개**
@@ -164,7 +164,7 @@ IndividualVaultTest:test_MultipleHeirsClaim()       (gas: 863,851)
 - Gas 효율성 **우수** (EIP-1167로 94% 절감)
 - 모든 테스트 **100% 통과** (단위 30개 + Invariant 5개)
 
-### 🔄 추후 개선 사항 (선택)
+### 추후 개선 사항 (선택)
 
 **Phase 2 (Optional)**:
 1. Variable shadowing 해결 (`isHeir` → `heirFound`)
@@ -176,13 +176,13 @@ IndividualVaultTest:test_MultipleHeirsClaim()       (gas: 863,851)
 2. Audit by external firm
 3. Bug bounty program
 
-### 📝 문서화 완료
+### 문서화 완료
 
-- ✅ ADR (Architecture Decision Records) - 4개
-- ✅ DEV_LOG.md - Phase 1 Day 4 완료
-- ✅ 단위 테스트 30개 + Invariant 5개
-- ✅ Gas Report
-- ✅ 보안 분석 리포트 (본 문서)
+- ADR (Architecture Decision Records) - 4개
+- DEV_LOG.md - Phase 1 Day 4 완료
+- 단위 테스트 30개 + Invariant 5개
+- Gas Report
+- 보안 분석 리포트 (본 문서)
 
 ---
 
@@ -190,12 +190,12 @@ IndividualVaultTest:test_MultipleHeirsClaim()       (gas: 863,851)
 
 LegacyChain Smart Contract는 **엔터프라이즈급 보안 수준**을 달성했습니다:
 
-- 🛡️ **보안**: Slither 검증 통과, OpenZeppelin v5.5.0 사용
-- 🧪 **테스트**: 90%+ 커버리지, 35개 테스트 100% 통과
-- ⚡ **성능**: EIP-1167로 94% Gas 절감
-- 📚 **문서**: 완전한 ADR 및 개발 로그
+- **보안**: Slither 검증 통과, OpenZeppelin v5.5.0 사용
+- **테스트**: 90%+ 커버리지, 35개 테스트 100% 통과
+- **성능**: EIP-1167로 94% Gas 절감
+- **문서**: 완전한 ADR 및 개발 로그
 
-**배포 준비 완료** ✅
+**배포 준비 완료** 
 
 ---
 

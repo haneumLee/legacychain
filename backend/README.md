@@ -1,74 +1,74 @@
 # LegacyChain Backend API
 
-> Go + Fiber 기반 고성능 REST API 서버
+> Go + Fiber   REST API 
 
-## 📖 개요
+## 
 
-LegacyChain의 Backend API는 Go 언어와 Fiber 프레임워크를 사용하여 구축된 고성능 RESTful API 서버입니다. PostgreSQL과 Redis를 사용하며, go-ethereum을 통해 스마트 컨트랙트와 통신합니다.
+LegacyChain Backend API Go  Fiber     RESTful API . PostgreSQL Redis , go-ethereum    .
 
-## 🏗️ 아키텍처
+## 
 
 ```
 backend/
-├── api/
-│   ├── handlers/       # HTTP 요청 핸들러
-│   │   ├── auth.go    # 인증 (Login, GetMe)
-│   │   └── vault.go   # Vault CRUD
-│   ├── middleware/     # 미들웨어
-│   │   ├── auth.go    # JWT 인증
-│   │   └── ratelimit.go # Rate Limiting
-│   └── routes/         # 라우트 설정
-├── models/             # GORM 모델
-│   ├── user.go
-│   ├── vault.go
-│   ├── heir.go
-│   └── heartbeat.go
-├── services/           # 비즈니스 로직 (예정)
-├── utils/              # 유틸리티 함수
-│   ├── database.go    # DB 초기화
-│   └── redis.go       # Redis 초기화
-├── config/             # 설정 관리
-│   └── config.go
-├── cmd/                # 애플리케이션 진입점
-│   └── main.go
-├── .env.example        # 환경 변수 템플릿
-└── go.mod              # Go 모듈 정의
+ api/
+    handlers/       # HTTP  
+       auth.go    #  (Login, GetMe)
+       vault.go   # Vault CRUD
+    middleware/     # 
+       auth.go    # JWT 
+       ratelimit.go # Rate Limiting
+    routes/         #  
+ models/             # GORM 
+    user.go
+    vault.go
+    heir.go
+    heartbeat.go
+ services/           #   ()
+ utils/              #  
+    database.go    # DB 
+    redis.go       # Redis 
+ config/             #  
+    config.go
+ cmd/                #  
+    main.go
+ .env.example        #   
+ go.mod              # Go  
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. 환경 변수 설정
+### 1.   
 
 ```bash
 cp .env.example .env
-# .env 파일을 편집하여 설정 변경
+# .env    
 ```
 
-### 2. 의존성 설치
+### 2.  
 
 ```bash
 go mod download
 ```
 
-### 3. 빌드 및 실행
+### 3.   
 
 ```bash
-# 빌드
+# 
 go build -o bin/server ./cmd/main.go
 
-# 실행
+# 
 ./bin/server
 ```
 
-또는 직접 실행:
+  :
 
 ```bash
 go run ./cmd/main.go
 ```
 
-서버는 기본적으로 `http://localhost:8080`에서 실행됩니다.
+  `http://localhost:8080` .
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Health Check
 
@@ -208,33 +208,33 @@ Authorization: Bearer <token>
 }
 ```
 
-## 🔐 Authentication
+## Authentication
 
-이 API는 JWT (JSON Web Token) 기반 인증을 사용합니다.
+ API JWT (JSON Web Token)   .
 
-1. `/api/v1/auth/login`으로 Ethereum 서명 검증 후 JWT 발급
-2. 이후 모든 요청의 `Authorization` 헤더에 `Bearer <token>` 포함
-3. 토큰은 기본 24시간 유효 (`.env`에서 변경 가능)
+1. `/api/v1/auth/login` Ethereum    JWT 
+2.    `Authorization`  `Bearer <token>` 
+3.   24  (`.env`  )
 
-## 📊 Rate Limiting
+## Rate Limiting
 
-Redis 기반 Rate Limiting 적용:
+Redis  Rate Limiting :
 
-- 기본: IP당 100 requests/minute
-- 응답 헤더:
-  - `X-RateLimit-Limit`: 최대 요청 수
-  - `X-RateLimit-Remaining`: 남은 요청 수
-  - `X-RateLimit-Reset`: 리셋 시간 (Unix timestamp)
+- : IP 100 requests/minute
+-  :
+  - `X-RateLimit-Limit`:   
+  - `X-RateLimit-Remaining`:   
+  - `X-RateLimit-Reset`:   (Unix timestamp)
 
-초과 시 `429 Too Many Requests` 응답
+  `429 Too Many Requests` 
 
-## 🗄️ Database Models
+##  Database Models
 
 ### User
 - `id` (UUID, PK)
 - `address` (Ethereum address, unique)
 - `email`, `nickname` (optional)
-- Soft Delete 지원
+- Soft Delete 
 
 ### Vault
 - `id` (UUID, PK)
@@ -258,7 +258,7 @@ Redis 기반 Rate Limiting 적용:
 - `tx_hash` (unique, on-chain transaction)
 - `timestamp`
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Language**: Go 1.25.0
 - **Framework**: Fiber v3.0.0-rc.3
@@ -268,9 +268,9 @@ Redis 기반 Rate Limiting 적용:
 - **Blockchain**: go-ethereum v1.16.7
 - **Auth**: JWT v5.3.0
 
-## 📦 Dependencies
+##  Dependencies
 
-주요 의존성:
+ :
 
 ```go
 github.com/gofiber/fiber/v3          // Web framework
@@ -283,9 +283,9 @@ github.com/google/uuid                // UUID generation
 github.com/joho/godotenv              // .env support
 ```
 
-## 🔧 Development
+## Development
 
-### 코드 포맷팅
+###  
 ```bash
 go fmt ./...
 ```
@@ -295,27 +295,27 @@ go fmt ./...
 go vet ./...
 ```
 
-### 테스트 (예정)
+###  ()
 ```bash
 go test ./...
 ```
 
-## 🚧 TODO (Day 13-15)
+##  TODO (Day 13-15)
 
-- [ ] Ethereum 서명 검증 구현 (ECDSA Personal Sign)
-- [ ] Blockchain Service 구현
-  - [ ] go-ethereum 클라이언트 설정
-  - [ ] VaultFactory ABI 바인딩
-  - [ ] 이벤트 리스닝 (VaultCreated, HeartbeatCommitted)
+- [ ] Ethereum    (ECDSA Personal Sign)
+- [ ] Blockchain Service 
+  - [ ] go-ethereum  
+  - [ ] VaultFactory ABI 
+  - [ ]   (VaultCreated, HeartbeatCommitted)
 - [ ] Heartbeat Handlers (Commit, Reveal, Status)
 - [ ] Heir Handlers (Approve, Claim)
 - [ ] Unit Tests
 - [ ] Integration Tests
-- [ ] Swagger/OpenAPI 문서
+- [ ] Swagger/OpenAPI 
 
-## 📄 Environment Variables
+## Environment Variables
 
-`.env.example` 참고:
+`.env.example` :
 
 ```env
 # Server
@@ -349,7 +349,7 @@ RATE_LIMIT_MAX=100
 RATE_LIMIT_WINDOW=1m
 ```
 
-## 📚 References
+## References
 
 - [Fiber Documentation](https://docs.gofiber.io/)
 - [GORM Documentation](https://gorm.io/docs/)

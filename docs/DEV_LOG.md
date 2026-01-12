@@ -5,7 +5,7 @@
 
 ---
 
-## 📋 목차
+## 목차
 
 1. [Phase 0: 개발 환경 구축](#phase-0-개발-환경-구축)
 2. [Phase 1: Smart Contract 개발](#phase-1-smart-contract-개발)
@@ -27,13 +27,13 @@
 ##### 1.1 초기 상태 확인
 ```bash
 # 설치된 도구
-✅ Node.js: v18.19.1
-✅ npm: 9.2.0
-✅ Docker: 29.1.4
+Node.js: v18.19.1
+npm: 9.2.0
+Docker: 29.1.4
 
 # 미설치 도구
-❌ Go (필수)
-❌ Foundry (필수)
+Go (필수)
+Foundry (필수)
 ```
 
 ##### 1.2 Go 1.21.13 설치
@@ -82,13 +82,13 @@ anvil --version
 
 ##### 1.4 최종 설치 도구 버전
 ```
-✅ Node.js: v18.19.1        (Frontend - Next.js 14)
-✅ npm: 9.2.0               (패키지 관리)
-✅ Go: go1.21.13            (Backend API)
-✅ Foundry - forge: 1.5.1   (Smart Contract 개발)
-✅ Foundry - cast: 1.5.1    (Blockchain 상호작용)
-✅ Foundry - anvil: 1.5.1   (로컬 테스트 노드)
-✅ Docker: 29.1.4           (Besu, PostgreSQL, Redis)
+Node.js: v18.19.1        (Frontend - Next.js 14)
+npm: 9.2.0               (패키지 관리)
+Go: go1.21.13            (Backend API)
+Foundry - forge: 1.5.1   (Smart Contract 개발)
+Foundry - cast: 1.5.1    (Blockchain 상호작용)
+Foundry - anvil: 1.5.1   (로컬 테스트 노드)
+Docker: 29.1.4           (Besu, PostgreSQL, Redis)
 ```
 
 #### 2. 프로젝트 디렉토리 구조 생성
@@ -177,7 +177,7 @@ cd /root/legacychain/contracts
 forge init --force --no-git
 
 # 설치된 라이브러리
-✅ forge-std (Foundry 표준 라이브러리)
+forge-std (Foundry 표준 라이브러리)
 ```
 
 **결과**: 
@@ -191,7 +191,7 @@ cd /root/legacychain/backend
 go mod init github.com/haneumLee/legacychain/backend
 
 # 결과
-✅ go.mod 생성
+go.mod 생성
 ```
 
 **설정**:
@@ -215,11 +215,11 @@ npx -y create-next-app@14 . \
 ```
 
 **설정**:
-- ✅ TypeScript
-- ✅ Tailwind CSS
-- ✅ App Router (Next.js 14)
-- ✅ ESLint
-- ✅ Import alias: `@/*`
+- TypeScript
+- Tailwind CSS
+- App Router (Next.js 14)
+- ESLint
+- Import alias: `@/*`
 
 **설치된 패키지**:
 ```json
@@ -284,24 +284,24 @@ To address all issues (including breaking changes), run:
 
 ##### 준비 완료 체크리스트
 ```yaml
-✅ 개발 도구 설치
+개발 도구 설치
   ├─ Go 1.21.13
   ├─ Foundry 1.5.1-stable
   └─ Node.js 18.19.1
 
-✅ 프로젝트 구조 생성
+프로젝트 구조 생성
   ├─ contracts/
   ├─ backend/
   ├─ frontend/
   ├─ docker/
   └─ infrastructure/
 
-✅ 프로젝트 초기화
+프로젝트 초기화
   ├─ Foundry (forge-std 설치)
   ├─ Go modules
   └─ Next.js 14
 
-⏳ Smart Contract 개발 준비
+Smart Contract 개발 준비
   ├─ OpenZeppelin Contracts 설치 (예정)
   ├─ VaultFactory.sol 작성 (예정)
   └─ IndividualVault.sol 작성 (예정)
@@ -349,13 +349,13 @@ Factory 패턴 기반 Smart Contract 아키텍처 설계 및 개발 환경 구�
 ```solidity
 // Before: 모든 Vault를 한 컨트랙트에 저장
 contract LegacyVault {
-    mapping(uint256 => Vault) public vaults;  // ❌ Cross-vault 공격 위험
+    mapping(uint256 => Vault) public vaults;  // Cross-vault 공격 위험
 }
 
 // After: 각 Vault가 독립된 컨트랙트
 contract VaultFactory {
     function createVault(...) returns (address) {
-        return vaultImplementation.clone();  // ✅ EIP-1167
+        return vaultImplementation.clone();  // EIP-1167
     }
 }
 ```
@@ -380,8 +380,8 @@ revealHeartbeat(nonce)
 ```
 
 **Trade-off**:
-- ❌ 가스비 2배 (2개 트랜잭션)
-- ✅ MEV/Front-running 완전 차단
+- 가스비 2배 (2개 트랜잭션)
+- MEV/Front-running 완전 차단
 
 **근거**: DECISIONS.md ADR-002 참조
 
@@ -407,8 +407,8 @@ forge install OpenZeppelin/openzeppelin-contracts
 forge install OpenZeppelin/openzeppelin-contracts-upgradeable
 
 # 설치된 버전
-✅ openzeppelin-contracts v5.5.0
-✅ openzeppelin-contracts-upgradeable v5.5.0
+openzeppelin-contracts v5.5.0
+openzeppelin-contracts-upgradeable v5.5.0
 ```
 
 **설치된 라이브러리**:
@@ -526,57 +526,57 @@ claimInheritance      | 23,411 | 60,874 | 63,506 | 97,045 | 9
 ##### 테스트 카테고리
 
 **3.1 Factory Tests (4개)**
-- ✅ `test_FactoryCreatesVault`
-- ✅ `test_RevertWhen_NoHeirs`
-- ✅ `test_RevertWhen_SharesNotHundredPercent`
-- ✅ `test_RevertWhen_InvalidHeartbeatInterval`
+- `test_FactoryCreatesVault`
+- `test_RevertWhen_NoHeirs`
+- `test_RevertWhen_SharesNotHundredPercent`
+- `test_RevertWhen_InvalidHeartbeatInterval`
 
 **3.2 Commit-Reveal Tests (4개)**
-- ✅ `test_CommitRevealHeartbeat`
-- ✅ `test_RevertWhen_CommitmentReused`
-- ✅ `test_RevertWhen_InvalidReveal`
-- ✅ `test_RevertWhen_HeartbeatNotExpired`
+- `test_CommitRevealHeartbeat`
+- `test_RevertWhen_CommitmentReused`
+- `test_RevertWhen_InvalidReveal`
+- `test_RevertWhen_HeartbeatNotExpired`
 
 **3.3 Grace Period Tests (3개)**
-- ✅ `test_CheckAndUnlock`
-- ✅ `test_OwnerReturnsInGracePeriod` (Owner 복귀 시나리오)
-- ✅ `test_RevertWhen_GracePeriodNotEnded`
+- `test_CheckAndUnlock`
+- `test_OwnerReturnsInGracePeriod` (Owner 복귀 시나리오)
+- `test_RevertWhen_GracePeriodNotEnded`
 
 **3.4 Multi-sig Approval Tests (5개)**
-- ✅ `test_HeirApproval`
-- ✅ `test_RevertWhen_NotHeir`
-- ✅ `test_RevertWhen_VaultLocked`
-- ✅ `test_RevertWhen_AlreadyApproved`
-- ✅ `test_RevertWhen_NotEnoughApprovals`
+- `test_HeirApproval`
+- `test_RevertWhen_NotHeir`
+- `test_RevertWhen_VaultLocked`
+- `test_RevertWhen_AlreadyApproved`
+- `test_RevertWhen_NotEnoughApprovals`
 
 **3.5 Claim Tests (3개)**
-- ✅ `test_ClaimInheritance`
-- ✅ `test_MultipleHeirsClaim` (공정 분배 검증)
-- ✅ `test_RevertWhen_AlreadyClaimed`
+- `test_ClaimInheritance`
+- `test_MultipleHeirsClaim` (공정 분배 검증)
+- `test_RevertWhen_AlreadyClaimed`
 
 **3.6 Emergency Pause Tests (4개)**
-- ✅ `test_EmergencyPause`
-- ✅ `test_PauseBlocksHeartbeat`
-- ✅ `test_PauseBlocksClaim`
-- ✅ `test_Unpause`
+- `test_EmergencyPause`
+- `test_PauseBlocksHeartbeat`
+- `test_PauseBlocksClaim`
+- `test_Unpause`
 
 **3.7 Owner Withdraw Tests (2개)**
-- ✅ `test_OwnerWithdraw`
-- ✅ `test_RevertWhen_WithdrawUnlocked`
+- `test_OwnerWithdraw`
+- `test_RevertWhen_WithdrawUnlocked`
 
 **3.8 기타 Tests (5개)**
-- ✅ `test_VaultInitialized`
-- ✅ `test_Deposit`
-- ✅ `test_IsClaimable`
-- ✅ `test_GetBalance`
-- ✅ `test_IsHeir`
+- `test_VaultInitialized`
+- `test_Deposit`
+- `test_IsClaimable`
+- `test_GetBalance`
+- `test_IsHeir`
 
 ##### 테스트 결과
 ```bash
 forge test --match-path test/unit/IndividualVault.t.sol -vv
 
 Ran 30 tests for test/unit/IndividualVault.t.sol:IndividualVaultTest
-✅ 30 passed; 0 failed; 0 skipped
+30 passed; 0 failed; 0 skipped
 ```
 
 #### 4. Invariant 테스트 작성 (5개 속성)
@@ -619,11 +619,11 @@ Runs: 256 scenarios
 Calls: 128,000 function calls per invariant
 Reverts: ~25,000 (정상적인 입력 검증 실패)
 
-✅ invariant_HeirSharesAlwaysHundredPercent (256 runs)
-✅ invariant_TotalClaimedNeverExceedsBalance (256 runs)
-✅ invariant_LockedVaultHasNoApprovals (256 runs)
-✅ invariant_GracePeriodOnlyWhenUnlocked (256 runs)
-✅ invariant_UnlockTimeInFuture (256 runs)
+invariant_HeirSharesAlwaysHundredPercent (256 runs)
+invariant_TotalClaimedNeverExceedsBalance (256 runs)
+invariant_LockedVaultHasNoApprovals (256 runs)
+invariant_GracePeriodOnlyWhenUnlocked (256 runs)
+invariant_UnlockTimeInFuture (256 runs)
 ```
 
 #### 5. 컴파일 경고 분석
@@ -643,13 +643,13 @@ Warning (8760): This declaration has the same name as another declaration.
 #### 6. 다음 단계
 
 ```
-✅ VaultFactory.sol 작성 완료
-✅ IndividualVault.sol 작성 완료
-✅ 단위 테스트 30개 작성 완료
-✅ Invariant 테스트 5개 작성 완료
-⏳ Gas Optimization (Day 5-6)
-⏳ Security Testing - Slither, Aderyn (Day 6)
-⏳ Deployment Scripts (Day 6-7)
+VaultFactory.sol 작성 완료
+IndividualVault.sol 작성 완료
+단위 테스트 30개 작성 완료
+Invariant 테스트 5개 작성 완료
+Gas Optimization (Day 5-6)
+Security Testing - Slither, Aderyn (Day 6)
+Deployment Scripts (Day 6-7)
 ```
 
 #### 시간 기록
@@ -682,7 +682,7 @@ pip3 install --ignore-installed slither-analyzer --break-system-packages
 
 ##### 분석 결과
 
-**High/Medium Severity**: **0개** ✅
+**High/Medium Severity**: **0개** 
 
 **Low/Informational 이슈**:
 1. **Variable Shadowing** (Informational)
@@ -706,7 +706,7 @@ pip3 install --ignore-installed slither-analyzer --break-system-packages
    - CEI 패턴 준수, ReentrancyGuard 보호
    - 조치: 불필요
 
-**결론**: **프로덕션 배포 가능한 보안 수준** ✅
+**결론**: **프로덕션 배포 가능한 보안 수준** 
 
 #### 2. 테스트 커버리지
 
@@ -724,9 +724,9 @@ forge coverage --report summary
 | **Total** | **90.15%** | **92.45%** | **70.13%** | **78.79%** |
 
 **분석**:
-- ✅ 전체 라인 커버리지 **90%+** 달성
-- ✅ 핵심 로직(Statement) **92%** 커버
-- ⚠️ Branch coverage 70% (일부 조건문 미테스트)
+- 전체 라인 커버리지 **90%+** 달성
+- 핵심 로직(Statement) **92%** 커버
+- Branch coverage 70% (일부 조건문 미테스트)
 - 미커버 코드: View 함수, 에러 조건 (revert 케이스는 단위 테스트로 검증)
 
 #### 3. Gas 성능 분석
@@ -751,7 +751,7 @@ forge snapshot --snap .gas-snapshot
 **EIP-1167 Clone Pattern 효과**:
 - Before: ~800,000 gas (직접 배포)
 - After: ~45,000 gas (clone)
-- **절감률: 94.4%** 🎉
+- **절감률: 94.4%** 
 
 **Multi-heir Claim**:
 - 3명 순차 청구: ~864k gas
@@ -817,17 +817,17 @@ forge script script/DeployVaultFactory.s.sol --rpc-url $RPC_URL --broadcast --ve
 #### 6. 다음 단계
 
 ```
-✅ VaultFactory.sol 작성 완료
-✅ IndividualVault.sol 작성 완료
-✅ 단위 테스트 30개 완료
-✅ Invariant 테스트 5개 완료
-✅ Slither 보안 분석 완료 (High/Medium: 0개)
-✅ 테스트 커버리지 90%+ 달성
-✅ Gas Snapshot 생성
-✅ 배포 스크립트 작성
-✅ SECURITY_REPORT.md 작성
-⏳ Besu 네트워크 구축 (Day 7-8)
-⏳ Backend API 개발 (Week 2-3)
+VaultFactory.sol 작성 완료
+IndividualVault.sol 작성 완료
+단위 테스트 30개 완료
+Invariant 테스트 5개 완료
+Slither 보안 분석 완료 (High/Medium: 0개)
+테스트 커버리지 90%+ 달성
+Gas Snapshot 생성
+배포 스크립트 작성
+SECURITY_REPORT.md 작성
+Besu 네트워크 구축 (Day 7-8)
+Backend API 개발 (Week 2-3)
 ```
 
 #### 시간 기록
@@ -839,7 +839,7 @@ forge script script/DeployVaultFactory.s.sol --rpc-url $RPC_URL --broadcast --ve
 - **Day 5 소요 시간**: ~1시간
 - **Phase 1 누적 시간**: ~3시간 40분
 
-**Phase 1 Smart Contract 개발 완료** 🎉
+**Phase 1 Smart Contract 개발 완료** 
 
 ---
 
@@ -910,11 +910,11 @@ _작성 예정_
 #### 배포 결과
 
 ```
-✅ VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-✅ Implementation: 0xa16E02E87b7454126E5E10d957A927A7F5B5d2be
-✅ Block: 9
-✅ Gas Used: 4,583,756
-✅ Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Implementation: 0xa16E02E87b7454126E5E10d957A927A7F5B5d2be
+Block: 9
+Gas Used: 4,583,756
+Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 ```
 
 #### 인프라 구성
@@ -1003,13 +1003,13 @@ go get -u \
 ```
 
 **의존성 설치 결과:**
-- ✅ Fiber v3.0.0-rc.3 (Go 1.25.0 auto-upgrade 필요)
-- ✅ GORM v1.31.1 + PostgreSQL driver v1.6.0
-- ✅ Redis client v9.17.2
-- ✅ go-ethereum v1.16.7
-- ✅ JWT v5.3.0
-- ✅ godotenv v1.5.1
-- ✅ UUID support
+- Fiber v3.0.0-rc.3 (Go 1.25.0 auto-upgrade 필요)
+- GORM v1.31.1 + PostgreSQL driver v1.6.0
+- Redis client v9.17.2
+- go-ethereum v1.16.7
+- JWT v5.3.0
+- godotenv v1.5.1
+- UUID support
 
 **주의사항:**
 Fiber v3는 Go 1.25+ 필요. `go get` 과정에서 자동으로 Go 1.21.13 → 1.25.0 업그레이드 수행.
@@ -1135,11 +1135,11 @@ GET  /api/v1/vaults/:id         # Get vault (JWT required)
 ```bash
 # 빌드 테스트
 go build -o bin/server ./cmd/main.go
-✅ 성공 (bin/server 생성됨)
+성공 (bin/server 생성됨)
 
 # 의존성 정리
 go mod tidy
-✅ 모든 의존성 정상
+모든 의존성 정상
 ```
 
 #### 다음 단계 (Day 13-15)
@@ -1169,17 +1169,17 @@ go mod tidy
 #### 기술적 고려사항
 
 **장점:**
-- ✅ Fiber의 뛰어난 성능 (fasthttp 기반, Express.js 유사 API)
-- ✅ GORM Auto Migration으로 스키마 관리 간편
-- ✅ Redis 기반 Rate Limiting으로 DDoS 방어
-- ✅ JWT 인증으로 stateless API
-- ✅ UUID 사용으로 Auto-increment ID 노출 방지
+- Fiber의 뛰어난 성능 (fasthttp 기반, Express.js 유사 API)
+- GORM Auto Migration으로 스키마 관리 간편
+- Redis 기반 Rate Limiting으로 DDoS 방어
+- JWT 인증으로 stateless API
+- UUID 사용으로 Auto-increment ID 노출 방지
 
 **주의사항:**
-- ⚠️ Signature verification 필수 (현재 TODO)
-- ⚠️ CORS 설정 프로덕션 배포 시 제한 필요
-- ⚠️ JWT Secret 환경변수로 관리, 강력한 키 사용
-- ⚠️ Redis 장애 시 Rate Limiter 우회 가능성
-- ⚠️ Database connection pool 설정 필요 (고트래픽 대비)
+- Signature verification 필수 (현재 TODO)
+- CORS 설정 프로덕션 배포 시 제한 필요
+- JWT Secret 환경변수로 관리, 강력한 키 사용
+- Redis 장애 시 Rate Limiter 우회 가능성
+- Database connection pool 설정 필요 (고트래픽 대비)
 
 ---

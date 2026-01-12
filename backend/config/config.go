@@ -44,6 +44,7 @@ type BlockchainConfig struct {
 	WsURL               string
 	ChainID             int64
 	VaultFactoryAddress string
+	PrivateKey          string
 }
 
 type JWTConfig struct {
@@ -92,6 +93,7 @@ func Load() *Config {
 			WsURL:               getEnv("BESU_WS_URL", "ws://localhost:8546"),
 			ChainID:             chainID,
 			VaultFactoryAddress: getEnv("VAULT_FACTORY_ADDRESS", ""),
+			PrivateKey:          getEnv("BLOCKCHAIN_PRIVATE_KEY", ""),
 		},
 		JWT: JWTConfig{
 			Secret:    getEnv("JWT_SECRET", "change-me-in-production"),

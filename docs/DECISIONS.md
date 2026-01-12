@@ -6,7 +6,7 @@
 
 ---
 
-## 📋 목차
+## 목차
 
 1. [ADR-001: Factory 패턴 선택](#adr-001-factory-패턴-선택)
 2. [ADR-002: Commit-Reveal Heartbeat](#adr-002-commit-reveal-heartbeat)
@@ -25,13 +25,13 @@
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 초기 설계에서는 단일 컨트랙트에 모든 Vault를 저장하는 방식을 고려했습니다:
 
 ```solidity
-// ❌ 초기 설계
+// 초기 설계
 contract LegacyVault {
     mapping(uint256 => Vault) public vaults;  // 모든 Vault가 한 곳에
 }
@@ -47,7 +47,7 @@ contract LegacyVault {
 **Factory + Clone 패턴** 채택 (EIP-1167: Minimal Proxy Contract)
 
 ```solidity
-// ✅ 개선된 설계
+// 개선된 설계
 contract VaultFactory {
     address public immutable vaultImplementation;
     
@@ -74,15 +74,15 @@ contract IndividualVault is Initializable {
 ### Consequences
 
 **Positive**:
-- ✅ Cross-vault 공격 차단
-- ✅ 가스비 대폭 절감 (45k vs 800k)
-- ✅ 개별 Vault Pausable/Upgradeable
-- ✅ 확장성 향상
+- Cross-vault 공격 차단
+- 가스비 대폭 절감 (45k vs 800k)
+- 개별 Vault Pausable/Upgradeable
+- 확장성 향상
 
 **Negative**:
-- ⚠️ 컨트랙트 복잡도 증가 (Factory + Implementation)
-- ⚠️ 초기 구현 시간 추가 소요
-- ⚠️ Initialize 패턴 필수 (Constructor 사용 불가)
+- 컨트랙트 복잡도 증가 (Factory + Implementation)
+- 초기 구현 시간 추가 소요
+- Initialize 패턴 필수 (Constructor 사용 불가)
 
 **Mitigation**:
 - OpenZeppelin Clones.sol 사용으로 안전성 확보
@@ -102,13 +102,13 @@ contract IndividualVault is Initializable {
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Heartbeat 트랜잭션이 Public Mempool에 노출되면 **Front-running 공격** 가능:
 
 ```solidity
-// ❌ 취약한 설계
+// 취약한 설계
 function heartbeat(uint256 _vaultId) external {
     // Mempool에서 보임 → Attacker가 먼저 approveInheritance() 호출 가능
     vaults[_vaultId].lastHeartbeat = block.timestamp;
@@ -125,7 +125,7 @@ function heartbeat(uint256 _vaultId) external {
 **Commit-Reveal 패턴** 도입
 
 ```solidity
-// ✅ 보안 강화 설계
+// 보안 강화 설계
 mapping(bytes32 => bool) private usedCommitments;
 
 function commitHeartbeat(bytes32 _commitment) external onlyOwner {
@@ -149,14 +149,14 @@ function revealHeartbeat(bytes32 _nonce) external onlyOwner {
 ### Consequences
 
 **Positive**:
-- ✅ Front-running 공격 완전 차단
-- ✅ MEV (Maximal Extractable Value) 공격 방어
-- ✅ Privacy 향상 (트랜잭션 의도 숨김)
+- Front-running 공격 완전 차단
+- MEV (Maximal Extractable Value) 공격 방어
+- Privacy 향상 (트랜잭션 의도 숨김)
 
 **Negative**:
-- ⚠️ 2개 트랜잭션 필요 (가스비 2배)
-- ⚠️ UX 복잡도 증가
-- ⚠️ Nonce 관리 필요
+- 2개 트랜잭션 필요 (가스비 2배)
+- UX 복잡도 증가
+- Nonce 관리 필요
 
 **Mitigation**:
 - Frontend에서 자동 Commit-Reveal 처리
@@ -164,9 +164,9 @@ function revealHeartbeat(bytes32 _nonce) external onlyOwner {
 - 실패 시 재시도 로직 구현
 
 **Alternative Considered**:
-- ❌ Flashbots Private Transaction: 중앙화 우려
-- ❌ Time-lock만 사용: Front-running 여전히 가능
-- ✅ **Commit-Reveal**: 분산화 + 보안
+- Flashbots Private Transaction: 중앙화 우려
+- Time-lock만 사용: Front-running 여전히 가능
+- **Commit-Reveal**: 분산화 + 보안
 
 ### References
 - [Commit-Reveal Pattern](https://github.com/ethereum/wiki/wiki/Safety#commit-reveal)
@@ -180,7 +180,7 @@ function revealHeartbeat(bytes32 _nonce) external onlyOwner {
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Smart Contract 배포 후 Critical 버그 발견 시 대응 방안 필요:
@@ -216,23 +216,23 @@ contract IndividualVault is Pausable, ReentrancyGuard {
 ```
 
 **Pausable 적용 함수**:
-- ✅ `commitHeartbeat()` - Front-running 방어
-- ✅ `revealHeartbeat()` - Heartbeat 실행
-- ✅ `approveInheritance()` - 상속 승인
-- ✅ `claimInheritance()` - 자산 인출
-- ❌ `getBalance()` - View 함수는 제외
+- `commitHeartbeat()` - Front-running 방어
+- `revealHeartbeat()` - Heartbeat 실행
+- `approveInheritance()` - 상속 승인
+- `claimInheritance()` - 자산 인출
+- `getBalance()` - View 함수는 제외
 
 ### Consequences
 
 **Positive**:
-- ✅ Circuit Breaker 역할 (버그 발견 시 즉시 중지)
-- ✅ 자산 손실 방지
-- ✅ 패치 배포 시간 확보
-- ✅ Owner 권한으로 제어 가능
+- Circuit Breaker 역할 (버그 발견 시 즉시 중지)
+- 자산 손실 방지
+- 패치 배포 시간 확보
+- Owner 권한으로 제어 가능
 
 **Negative**:
-- ⚠️ 중앙화 우려 (Owner가 악의적으로 pause 가능)
-- ⚠️ 가스비 약간 증가 (whenNotPaused modifier)
+- 중앙화 우려 (Owner가 악의적으로 pause 가능)
+- 가스비 약간 증가 (whenNotPaused modifier)
 
 **Mitigation**:
 - Timelock + Multi-sig Owner 고려 (Phase 2)
@@ -252,7 +252,7 @@ contract IndividualVault is Pausable, ReentrancyGuard {
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Smart Contract 개발 시 라이브러리 선택 필요:
@@ -278,16 +278,16 @@ openzeppelin-contracts-upgradeable v5.5.0
 ### Consequences
 
 **Positive**:
-- ✅ Battle-tested 코드 (수백 개 프로젝트 사용)
-- ✅ 정기적인 Security Audit
-- ✅ 커뮤니티 지원 활발
-- ✅ Gas Optimized
-- ✅ EIP 표준 준수
+- Battle-tested 코드 (수백 개 프로젝트 사용)
+- 정기적인 Security Audit
+- 커뮤니티 지원 활발
+- Gas Optimized
+- EIP 표준 준수
 
 **Negative**:
-- ⚠️ 추가 의존성
-- ⚠️ 라이브러리 크기 (50MB+)
-- ⚠️ 업그레이드 시 호환성 체크 필요
+- 추가 의존성
+- 라이브러리 크기 (50MB+)
+- 업그레이드 시 호환성 체크 필요
 
 **Mitigation**:
 - 특정 버전 고정 (v5.5.0)
@@ -295,9 +295,9 @@ openzeppelin-contracts-upgradeable v5.5.0
 - 사용하지 않는 모듈은 import 제외
 
 ### Alternatives Considered
-- ❌ Solmate: 가벼우나 Audit 부족
-- ❌ 직접 구현: 시간 소요 + 보안 리스크
-- ✅ **OpenZeppelin**: 안정성 + 검증됨
+- Solmate: 가벼우나 Audit 부족
+- 직접 구현: 시간 소요 + 보안 리스크
+- **OpenZeppelin**: 안정성 + 검증됨
 
 ### References
 - [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts)
@@ -311,7 +311,7 @@ openzeppelin-contracts-upgradeable v5.5.0
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Private Ethereum 네트워크 구축을 위해 여러 옵션을 평가했습니다:
@@ -342,16 +342,16 @@ Private Ethereum 네트워크 구축을 위해 여러 옵션을 평가했습니�
 ### Consequences
 
 **Positive**:
-- ✅ Private network 완벽 지원
-- ✅ Clique PoA로 빠른 블록 생성 (3초)
-- ✅ JSON-RPC/WebSocket 표준 준수
-- ✅ Docker Compose 배포 용이
-- ✅ 향후 Permissioning 확장 가능
+- Private network 완벽 지원
+- Clique PoA로 빠른 블록 생성 (3초)
+- JSON-RPC/WebSocket 표준 준수
+- Docker Compose 배포 용이
+- 향후 Permissioning 확장 가능
 
 **Negative**:
-- ⚠️ Anvil보다 무거움 (메모리 사용량 증가)
-- ⚠️ 초기 설정 복잡도 (genesis.json, bootnode 등)
-- ⚠️ 로컬 개발 시 오버헤드
+- Anvil보다 무거움 (메모리 사용량 증가)
+- 초기 설정 복잡도 (genesis.json, bootnode 등)
+- 로컬 개발 시 오버헤드
 
 **Mitigation**:
 - 로컬 빠른 테스트는 Anvil 병행 사용
@@ -359,10 +359,10 @@ Private Ethereum 네트워크 구축을 위해 여러 옵션을 평가했습니�
 - 문서화로 러닝 커브 완화
 
 ### Alternatives Considered
-- ❌ **Anvil**: 개발용으로 적합하나 Production 부적합
-- ❌ **Ganache**: 개발 중단, 업데이트 부족
-- ❌ **Geth**: PoA 지원 제한적, Besu가 더 나은 Private network 기능
-- ✅ **Besu**: Enterprise 요구사항 충족
+- **Anvil**: 개발용으로 적합하나 Production 부적합
+- **Ganache**: 개발 중단, 업데이트 부족
+- **Geth**: PoA 지원 제한적, Besu가 더 나은 Private network 기능
+- **Besu**: Enterprise 요구사항 충족
 
 ### References
 - [Hyperledger Besu Documentation](https://besu.hyperledger.org/)
@@ -376,7 +376,7 @@ Private Ethereum 네트워크 구축을 위해 여러 옵션을 평가했습니�
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Private network의 consensus mechanism 선택이 필요했습니다.
@@ -412,15 +412,15 @@ Private network의 consensus mechanism 선택이 필요했습니다.
 ### Consequences
 
 **Positive**:
-- ✅ 3초 블록 타임으로 빠른 트랜잭션 확정
-- ✅ 개발 환경에서 단일 노드로 테스트 가능
-- ✅ Gas 비용 제어 가능 (private network)
-- ✅ Finality 보장 (51% attack 불필요)
+- 3초 블록 타임으로 빠른 트랜잭션 확정
+- 개발 환경에서 단일 노드로 테스트 가능
+- Gas 비용 제어 가능 (private network)
+- Finality 보장 (51% attack 불필요)
 
 **Negative**:
-- ⚠️ Centralization 리스크 (PoA 특성)
-- ⚠️ Signer key 관리 필요
-- ⚠️ Public network 이전 시 PoS로 전환 필요
+- Centralization 리스크 (PoA 특성)
+- Signer key 관리 필요
+- Public network 이전 시 PoS로 전환 필요
 
 **Mitigation**:
 - 프로덕션: 최소 4개 signer 운영
@@ -428,10 +428,10 @@ Private network의 consensus mechanism 선택이 필요했습니다.
 - Public 전환 계획: Layer 2 고려
 
 ### Alternatives Considered
-- ❌ **PoW**: 느림, 리소스 낭비
-- ❌ **IBFT 2.0**: 복잡, 최소 4 validators 필요
-- ❌ **QBFT**: Enterprise 초점, 과도한 기능
-- ✅ **Clique**: 개발 용이성 + Production 가능
+- **PoW**: 느림, 리소스 낭비
+- **IBFT 2.0**: 복잡, 최소 4 validators 필요
+- **QBFT**: Enterprise 초점, 과도한 기능
+- **Clique**: 개발 용이성 + Production 가능
 
 ### References
 - [EIP-225: Clique PoA](https://eips.ethereum.org/EIPS/eip-225)
@@ -445,7 +445,7 @@ Private network의 consensus mechanism 선택이 필요했습니다.
 2026-01-12
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Solidity 0.8.20+ 컴파일 시 PUSH0 opcode 사용으로 배포 실패가 발생했습니다.
@@ -477,24 +477,24 @@ evm_version = "london"
 ### Consequences
 
 **Positive**:
-- ✅ PUSH0 opcode 생성 방지
-- ✅ Besu London hardfork와 완벽 호환
-- ✅ 배포 성공 (4.5M gas)
-- ✅ Solidity 최신 기능 사용 가능
+- PUSH0 opcode 생성 방지
+- Besu London hardfork와 완벽 호환
+- 배포 성공 (4.5M gas)
+- Solidity 최신 기능 사용 가능
 
 **Negative**:
-- ⚠️ PUSH0 최적화 포기 (미미한 가스 절감 손실)
-- ⚠️ Shanghai 이후 기능 사용 불가
-- ⚠️ 향후 Mainnet 배포 시 재컴파일 필요
+- PUSH0 최적화 포기 (미미한 가스 절감 손실)
+- Shanghai 이후 기능 사용 불가
+- 향후 Mainnet 배포 시 재컴파일 필요
 
 **Mitigation**:
 - Production 배포 시 EVM 버전 재검토
 - Layer 2 (Arbitrum, Optimism)는 Shanghai 지원
 
 ### Alternatives Considered
-- ❌ **Solidity 다운그레이드**: 최신 보안 패치 포기
-- ❌ **Shanghai hardfork 추가**: Withdrawals로 Clique 블록 생성 실패
-- ✅ **London EVM 설정**: 간단하고 효과적
+- **Solidity 다운그레이드**: 최신 보안 패치 포기
+- **Shanghai hardfork 추가**: Withdrawals로 Clique 블록 생성 실패
+- **London EVM 설정**: 간단하고 효과적
 
 ### Technical Details
 
@@ -506,9 +506,9 @@ Invalid block mined, could not be imported to local chain
 
 **London 설정 후 성공**:
 ```
-✅ VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-✅ Gas Used: 4,583,756
-✅ Block: 9
+VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Gas Used: 4,583,756
+Block: 9
 ```
 
 ### References
@@ -523,7 +523,7 @@ Invalid block mined, could not be imported to local chain
 2026-01-12
 
 ### Status
-✅ Accepted (Temporary)
+Accepted (Temporary)
 
 ### Context
 Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
@@ -556,15 +556,15 @@ Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
 ### Consequences
 
 **Positive**:
-- ✅ Genesis부터 블록 생성 성공
-- ✅ 개발 속도 향상
-- ✅ 메모리/CPU 사용량 1/4로 감소
-- ✅ Docker Compose 단순화
+- Genesis부터 블록 생성 성공
+- 개발 속도 향상
+- 메모리/CPU 사용량 1/4로 감소
+- Docker Compose 단순화
 
 **Negative**:
-- ⚠️ Centralization (Single point of failure)
-- ⚠️ Network resilience 테스트 불가
-- ⚠️ Peer-to-peer sync 검증 안됨
+- Centralization (Single point of failure)
+- Network resilience 테스트 불가
+- Peer-to-peer sync 검증 안됨
 
 **Mitigation**:
 - Production 배포 전 Multi-node 전환
@@ -574,18 +574,18 @@ Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
 ### Future Plan
 
 **Phase 1 (Current)**: Single-node
-- ✅ Smart Contract 개발 및 테스트
-- ✅ Backend/Frontend 통합
+- Smart Contract 개발 및 테스트
+- Backend/Frontend 통합
 
 **Phase 1.5 (Week 2)**: Multi-node Expansion
-- 🔄 besu-node-2, 3, 4 추가
-- 🔄 Static peers 설정
-- 🔄 Consensus 안정성 테스트
+- besu-node-2, 3, 4 추가
+- Static peers 설정
+- Consensus 안정성 테스트
 
 **Production**: Minimum 4 nodes
-- 🔜 Geographic distribution
-- 🔜 Load balancing
-- 🔜 Monitoring & Alerting
+- Geographic distribution
+- Load balancing
+- Monitoring & Alerting
 
 ### References
 - [Besu Sync Modes](https://besu.hyperledger.org/en/stable/Reference/CLI/CLI-Syntax/#sync-mode)
@@ -599,7 +599,7 @@ Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
 2026-01-13
 
 ### Status
-✅ Accepted
+Accepted
 
 ### Context
 Backend API 개발을 위한 언어 및 프레임워크 선택이 필요했습니다.
@@ -648,18 +648,18 @@ Backend API 개발을 위한 언어 및 프레임워크 선택이 필요했습�
 ### Consequences
 
 **Positive**:
-- ✅ go-ethereum 완벽 호환 (ABI 바인딩, 서명, 이벤트)
-- ✅ Fiber의 뛰어난 성능 (fasthttp 기반)
-- ✅ Goroutine으로 이벤트 리스닝 + API 동시 처리
-- ✅ 단일 바이너리 배포로 DevOps 간소화
-- ✅ 컴파일 타임 타입 체크로 버그 조기 발견
-- ✅ 메모리 효율성 (GC 최적화)
+- go-ethereum 완벽 호환 (ABI 바인딩, 서명, 이벤트)
+- Fiber의 뛰어난 성능 (fasthttp 기반)
+- Goroutine으로 이벤트 리스닝 + API 동시 처리
+- 단일 바이너리 배포로 DevOps 간소화
+- 컴파일 타임 타입 체크로 버그 조기 발견
+- 메모리 효율성 (GC 최적화)
 
 **Negative**:
-- ⚠️ Node.js 대비 생태계 작음 (일부 라이브러리 부족)
-- ⚠️ 제네릭 문법 복잡성 (Go 1.18+)
-- ⚠️ Error handling 장황함 (`if err != nil` 반복)
-- ⚠️ Fiber v3가 RC 단계 (안정화 필요)
+- Node.js 대비 생태계 작음 (일부 라이브러리 부족)
+- 제네릭 문법 복잡성 (Go 1.18+)
+- Error handling 장황함 (`if err != nil` 반복)
+- Fiber v3가 RC 단계 (안정화 필요)
 
 **Mitigation**:
 - GORM, Redis, JWT 등 주요 라이브러리 성숙함
@@ -703,46 +703,46 @@ backend/
 ### Alternatives Considered
 
 **Node.js + Express (기각)**:
-- ❌ Single-threaded (CPU-bound 작업 취약)
-- ❌ go-ethereum 바인딩 복잡 (ethers.js로 우회 필요)
-- ❌ 성능 낮음 (10배 차이)
-- ✅ 생태계 넓음 (npm 패키지 풍부)
+- Single-threaded (CPU-bound 작업 취약)
+- go-ethereum 바인딩 복잡 (ethers.js로 우회 필요)
+- 성능 낮음 (10배 차이)
+- 생태계 넓음 (npm 패키지 풍부)
 
 **Python + FastAPI (기각)**:
-- ❌ GIL로 인한 동시성 제한
-- ❌ 배포 복잡 (가상환경 관리)
-- ❌ go-ethereum 미지원 (web3.py 사용)
-- ✅ 빠른 개발 속도
+- GIL로 인한 동시성 제한
+- 배포 복잡 (가상환경 관리)
+- go-ethereum 미지원 (web3.py 사용)
+- 빠른 개발 속도
 
 **Rust + Actix-web (기각)**:
-- ❌ 학습 곡선 가파름 (Ownership, Lifetime)
-- ❌ 개발 속도 느림
-- ❌ Ethereum 라이브러리 성숙도 낮음
-- ✅ 최고 성능 및 메모리 안전성
+- 학습 곡선 가파름 (Ownership, Lifetime)
+- 개발 속도 느림
+- Ethereum 라이브러리 성숙도 낮음
+- 최고 성능 및 메모리 안전성
 
 ### Implementation Status
 
 **Day 11-12 완료사항**:
-- ✅ Backend 디렉토리 구조 생성
-- ✅ Go 모듈 초기화 (`go.mod`)
-- ✅ 의존성 설치 (Fiber, GORM, Redis, go-ethereum, JWT)
-- ✅ GORM 모델 구현 (User, Vault, Heir, Heartbeat)
-- ✅ Database/Redis 초기화 유틸리티
-- ✅ JWT 인증 미들웨어
-- ✅ Redis 기반 Rate Limiter
-- ✅ Auth Handler (Login, GetMe)
-- ✅ Vault Handler (Create, List, Get)
-- ✅ 라우트 설정 (`/api/v1`)
-- ✅ 메인 애플리케이션 (`cmd/main.go`)
-- ✅ 빌드 테스트 성공
+- Backend 디렉토리 구조 생성
+- Go 모듈 초기화 (`go.mod`)
+- 의존성 설치 (Fiber, GORM, Redis, go-ethereum, JWT)
+- GORM 모델 구현 (User, Vault, Heir, Heartbeat)
+- Database/Redis 초기화 유틸리티
+- JWT 인증 미들웨어
+- Redis 기반 Rate Limiter
+- Auth Handler (Login, GetMe)
+- Vault Handler (Create, List, Get)
+- 라우트 설정 (`/api/v1`)
+- 메인 애플리케이션 (`cmd/main.go`)
+- 빌드 테스트 성공
 
 **Day 13-15 예정**:
-- 🔜 Ethereum 서명 검증 (ECDSA Personal Sign)
-- 🔜 Blockchain Service (go-ethereum client)
-- 🔜 VaultFactory ABI 바인딩
-- 🔜 이벤트 리스닝 (VaultCreated, HeartbeatCommitted)
-- 🔜 Heartbeat/Heir Handlers
-- 🔜 Unit/Integration Tests
+- Ethereum 서명 검증 (ECDSA Personal Sign)
+- Blockchain Service (go-ethereum client)
+- VaultFactory ABI 바인딩
+- 이벤트 리스닝 (VaultCreated, HeartbeatCommitted)
+- Heartbeat/Heir Handlers
+- Unit/Integration Tests
 
 ### Future Enhancements
 

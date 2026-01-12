@@ -5,7 +5,7 @@
 
 ---
 
-## 📋 목차
+## 목차
 
 1. [PRD 문서 개선 히스토리](#1-prd-문서-개선-히스토리)
 2. [Smart Contract 이슈](#2-smart-contract-이슈)
@@ -54,9 +54,9 @@ contract VaultFactory {
 
 contract IndividualVault {
     // 각 Vault가 독립된 컨트랙트
-    // ✅ 보안 격리
-    // ✅ 가스비 최적화
-    // ✅ Upgrade 유연성
+    // 보안 격리
+    // 가스비 최적화
+    // Upgrade 유연성
 }
 ```
 
@@ -170,11 +170,11 @@ Phase 3 (4주): 토큰 지원 및 고도화
 ```
 
 #### Result
-- ✅ PRD 문서 v1.1 배포 (2026-01-12)
-- ✅ 보안 취약점 사전 차단
-- ✅ 개발 일정 현실화 (3주 → 4주+)
-- ✅ 법적 리스크 대응 전략 수립
-- ✅ 확장성 있는 아키텍처 설계
+- PRD 문서 v1.1 배포 (2026-01-12)
+- 보안 취약점 사전 차단
+- 개발 일정 현실화 (3주 → 4주+)
+- 법적 리스크 대응 전략 수립
+- 확장성 있는 아키텍처 설계
 
 #### References
 - [EIP-1167: Minimal Proxy Contract](https://eips.ethereum.org/EIPS/eip-1167)
@@ -234,9 +234,9 @@ _작성 예정_
    - 피어 없음 → Full Sync 시작 불가
 
 3. **Clique Signer Setup**
-   - Private key 파일 생성 ✅
-   - `--node-private-key-file` 설정 ✅  
-   - But: Full Sync mode가 마이닝 차단 중 ❌
+   - Private key 파일 생성 
+   - `--node-private-key-file` 설정  
+   - But: Full Sync mode가 마이닝 차단 중 
 
 #### Solution Options
 - **Option 1**: `--sync-mode=FAST` + `--sync-min-peers=0`
@@ -266,7 +266,7 @@ _작성 예정_
    - Genesis 변경 사항 적용 위해 필수
 
 #### Deployment Result
-✅ VaultFactory deployed successfully
+VaultFactory deployed successfully
 - Address: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
 - Implementation: `0xa16E02E87b7454126E5E10d957A927A7F5B5d2be`
 - Block: 9

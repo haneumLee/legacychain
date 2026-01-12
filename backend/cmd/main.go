@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/haneumLee/legacychain/backend/api/routes"
 	"github.com/haneumLee/legacychain/backend/config"
+	"github.com/haneumLee/legacychain/backend/internal/service"
 	"github.com/haneumLee/legacychain/backend/utils"
 )
 
@@ -28,6 +29,15 @@ func main() {
 		log.Fatalf("Failed to initialize Redis: %v", err)
 	}
 
+	// Initialize Blockchain Service
+	blockchain, err := service.NewBlockchainService(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize blockchain service: %v", err)
+	}
+	defer blockchain.Close()
+
+	log.Printf("✅ Blockchain service connected to %s (Chain ID: %d)", cfg.Blockchain.RpcURL, cfg.Blockchain.ChainID)
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		AppName:      "LegacyChain API v1.0",
@@ -44,7 +54,7 @@ func main() {
 	}))
 
 	// Setup routes
-	routes.Setup(app, db, redisClient, cfg)
+	routes.Setup(app, db, redisClient, cfg, blockchain)
 
 	// Start server
 	log.Printf("🚀 Server starting on port %s", cfg.Server.Port)

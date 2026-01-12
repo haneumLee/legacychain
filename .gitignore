@@ -11,6 +11,9 @@
 *.env
 !.env.example
 
+# Docker environment (contains validator private keys)
+docker/.env
+
 # ============ Secrets & Keys ============
 *.pem
 *.key
