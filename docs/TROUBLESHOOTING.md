@@ -17,6 +17,75 @@
 
 ## 1. DevOps 이슈
 
+### [2026-01-12] Besu 네트워크 가스 가격 불일치로 인한 트랜잭션 Pending
+
+#### Date
+2026-01-12
+
+#### Error
+Forge script로 Besu 네트워크에 컨트랙트 배포 시 트랜잭션이 무한정 pending 상태로 고착
+
+#### Symptom
+```bash
+forge script script/DeployVaultFactory.s.sol --rpc-url http://localhost:8545 --broadcast
+
+# Output
+Waiting for transaction receipt... (60+ seconds)
+[00:01:00] [----] 0/1 receipts
+
+# 트랜잭션 상태
+eth_getTransactionByHash:
+  blockHash: null
+  gasPrice: 0xf (15 wei)
+  maxFeePerGas: 0xf (15 wei)
+```
+
+블록은 계속 생성되지만 (0xebf → 0xf60, +161 blocks) 트랜잭션은 블록에 포함되지 않음
+
+#### Cause
+Forge가 자동으로 설정한 가스 가격 (15 wei)이 Besu Clique PoA 네트워크의 최소 가스 가격 (1000 wei)보다 낮음
+
+```bash
+# Besu 네트워크 최소 가스 가격 확인
+curl -X POST http://localhost:8545 -d '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":1}'
+# Result: 0x3e8 (1000 wei)
+
+# Forge 트랜잭션 가스 가격
+gasPrice: 0xf (15 wei) ← 너무 낮음
+```
+
+**Besu Clique PoA 특성:**
+- 고정된 최소 가스 가격 (min-gas-price) 존재
+- Anvil/Hardhat 개발 네트워크와 달리 자동 가스 가격 조정 없음
+- 낮은 가스 가격의 트랜잭션은 트랜잭션 풀에서 무한정 대기하거나 거부됨
+
+#### Fix
+명시적으로 가스 가격을 Besu 네트워크에 맞게 설정:
+
+```bash
+PRIVATE_KEY=0xac09... forge script script/DeployVaultFactory.s.sol \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --legacy \
+  --gas-price 1000  # Besu 최소 가스 가격 (1000 wei)
+```
+
+**결과:**
+```
+Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Block: 4378
+Gas Used: 4,583,756
+Gas Price: 1000 wei
+Total Cost: 0.000000004583756 ETH
+```
+
+#### Reference
+- Besu Min Gas Price 설정: `docker/besu/genesis.json` → `config.clique.minGasPrice`
+- Foundry 가스 가격 설정: https://book.getfoundry.sh/reference/forge/forge-script#general-options
+- Besu 트랜잭션 풀: https://besu.hyperledger.org/public-networks/concepts/transactions/pool
+
+---
+
 ### [2026-01-12] Besu Node Healthcheck Failure
 
 #### Date

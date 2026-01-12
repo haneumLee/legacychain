@@ -1752,5 +1752,122 @@ getTimeUntilExpiry() → "25 days 12 hours"
 
 ---
 
+### [2026-01-12] Day 15: Besu 네트워크 컨트랙트 배포 및 통합 테스트
+
+#### 작업 개요
+Besu Clique PoA 네트워크에 VaultFactory 배포 및 Frontend-Backend 통합 테스트
+
+#### 1. 배포 환경 확인
+
+**Besu 네트워크 상태:**
+```bash
+# Docker Compose 서비스
+besu-node-1/2/3/4: Up (healthy)
+postgres: Up (healthy)  
+redis: Up (healthy)
+
+# RPC 연결
+curl -X POST http://localhost:8545 -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+# Result: 0xf60 (3936 blocks)
+```
+
+#### 2. 배포 실패 및 트러블슈팅
+
+**문제 1: 트랜잭션 Pending 상태 고착**
+
+초기 배포 시도:
+```bash
+PRIVATE_KEY=0xac09... forge script script/DeployVaultFactory.s.sol --rpc-url http://localhost:8545 --broadcast
+```
+
+증상:
+- 트랜잭션 전송 성공 (Hash: 0x1949e0...)
+- 60초 이상 pending 상태 유지
+- 블록은 계속 생성되지만 트랜잭션 미포함
+
+원인 분석:
+```bash
+# 트랜잭션 조회
+curl -X POST http://localhost:8545 -d '{"jsonrpc":"2.0","method":"eth_getTransactionByHash","params":["0x1949e0..."],"id":1}'
+
+# 결과
+gasPrice: 0xf (15 wei)
+maxFeePerGas: 0xf (15 wei)
+blockHash: null  # 블록에 미포함
+```
+
+```bash
+# Besu 네트워크 가스 가격 확인
+curl -X POST http://localhost:8545 -d '{"jsonrpc":"2.0","method":"eth_gasPrice","params":[],"id":1}'
+
+# 결과
+result: 0x3e8 (1000 wei)
+```
+
+**근본 원인**: Forge가 설정한 가스 가격 (15 wei)이 Besu 네트워크 최소 가스 가격 (1000 wei)보다 낮아서 Clique PoA 시스템이 트랜잭션을 거부함
+
+**해결책**: 명시적 가스 가격 설정
+
+```bash
+PRIVATE_KEY=0xac09... forge script script/DeployVaultFactory.s.sol \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --legacy \
+  --gas-price 1000
+```
+
+#### 3. 성공적인 배포
+
+**배포 결과:**
+```
+Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Block: 4378
+Gas Used: 4,583,756
+Gas Price: 1000 wei (0.000001 gwei)
+Total Cost: 0.000000004583756 ETH
+Implementation Vault: 0xa16E02E87b7454126E5E10d957A927A7F5B5d2be
+```
+
+**Frontend 설정 업데이트:**
+```typescript
+// frontend/lib/contracts.ts
+export const VAULT_FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+export const CHAIN_ID = 1337
+```
+
+#### 4. 교훈 및 개선 사항
+
+**Besu Clique PoA 특성:**
+- 고정된 최소 가스 가격 (1000 wei) 존재
+- Anvil/Hardhat과 달리 자동 가스 가격 조정 없음
+- 트랜잭션 풀에서 낮은 가스 가격의 트랜잭션을 무한정 대기
+
+**배포 스크립트 개선 필요:**
+```solidity
+// DeployVaultFactory.s.sol에 추가 권장
+vm.txGasPrice(1000); // Besu 네트워크용 가스 가격 설정
+```
+
+**문서화:**
+- `docs/TROUBLESHOOTING.md`에 Besu 가스 가격 이슈 추가
+- 배포 가이드에 `--gas-price 1000` 플래그 명시
+
+#### 5. 다음 단계
+
+- [ ] Backend API 서버 시작 (.env 설정)
+- [ ] Frontend Dev 서버 시작
+- [ ] MetaMask에 Besu 네트워크 추가
+- [ ] End-to-End 테스트 진행
+
+#### 6. 시간 기록
+- Besu 네트워크 상태 확인: ~5분
+- 배포 실패 및 디버깅: ~30분
+- 가스 가격 이슈 해결: ~10분
+- 성공적인 배포: ~5분
+- **Day 15 소요 시간 (현재)**: ~50분
+- **누적 시간**: ~8시간 50분
+
+---
+
 **Last Updated**: 2026-01-12  
-**Next**: Besu 네트워크에 컨트랙트 배포 및 통합 테스트
+**Next**: Backend API 서버 시작 및 Frontend 연동 테스트
