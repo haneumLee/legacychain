@@ -6,7 +6,6 @@
 [![Foundry](https://img.shields.io/badge/Foundry-1.5.1-red.svg)](https://getfoundry.sh/)
 [![Go](https://img.shields.io/badge/Go-1.25.0-00ADD8.svg)](https://go.dev/)
 [![Fiber](https://img.shields.io/badge/Fiber-v3.0.0--rc.3-00ACD7.svg)](https://gofiber.io/)
-[![License](https://img.shields.io/badge/License-AGPL-3.0-green.svg)](LICENSE)
 
 ## 개요
 
