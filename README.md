@@ -70,9 +70,12 @@ cd contracts
 forge test -vv
 
 # Besu 네트워크에 배포
-PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+# ⚠️ WARNING: 테스트 환경 전용 - 절대 실제 자산을 보내지 마세요!
+# .env.besu 파일에서 BESU_TEST_PRIVATE_KEY 사용 권장
+source ../.env.besu
 forge script script/DeployVaultFactory.s.sol:DeployVaultFactory \
-  --rpc-url http://localhost:8545 \
+  --rpc-url $BESU_RPC_URL \
+  --private-key $BESU_TEST_PRIVATE_KEY \
   --broadcast \
   --legacy
 ```
