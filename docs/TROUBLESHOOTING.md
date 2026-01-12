@@ -209,3 +209,72 @@ _작성 예정_
 ---
 
 **Last Updated**: 2026-01-12
+
+## 5. DevOps 이슈
+
+### [2026-01-12] Besu Clique PoA 블록 생성 실패
+
+#### Date
+2026-01-12
+
+#### Symptom
+- Besu 노드 정상 시작되지만 블록 번호가 0에서 증가하지 않음
+- RPC 응답: `{"jsonrpc":"2.0","id":1,"result":"0x0"}` (지속)
+- 로그: `Unable to find sync target. Waiting for 5 peers minimum`
+- VaultFactory 배포 시 "Known transaction" 에러 (mempool에 있지만 채굴 안됨)
+
+#### Root Cause
+1. **Full Sync Mode Peer Requirement**
+   - `--sync-mode=FULL`로 실행 중
+   - Full sync에서 `--sync-min-peers` 무시됨: `--sync-min-peers is ignored in FULL sync-mode`
+   - 기본 5개 피어 대기 → 단일 노드에서 블록 생성 불가
+
+2. **Network Configuration**
+   - `--discovery-enabled=false` + 단일 노드 실행
+   - 피어 없음 → Full Sync 시작 불가
+
+3. **Clique Signer Setup**
+   - Private key 파일 생성 ✅
+   - `--node-private-key-file` 설정 ✅  
+   - But: Full Sync mode가 마이닝 차단 중 ❌
+
+#### Solution Options
+- **Option 1**: `--sync-mode=FAST` + `--sync-min-peers=0`
+- **Option 2**: `--sync-mode` 제거 (genesis부터 시작 시)
+- **Option 3**: 멀티 노드 네트워크 구축 (4 nodes)
+
+#### Next Steps
+1. Option 2 시도 - sync-mode 제거
+2. 실패 시 Option 1 - FAST sync
+3. 성공 시 DEV_LOG.md 업데이트
+
+
+### [2026-01-12] Besu Clique PoA 블록 생성 실패 - **RESOLVED**
+
+#### Final Solution
+**Option 2 적용**: `--sync-mode` 제거 + EVM 버전 설정
+
+#### Implementation Steps
+1. **docker-compose.yml**: `--sync-mode=FULL` 및 `--sync-min-peers=0` 제거
+   - Single-node Clique는 sync mode 불필요
+   
+2. **foundry.toml**: `evm_version = "london"` 추가
+   - Solidity 0.8.20+의 PUSH0 opcode 방지
+   - Besu London 하드포크까지만 지원
+   
+3. **Data reset**: `docker volume rm docker_besu-node-1-data`
+   - Genesis 변경 사항 적용 위해 필수
+
+#### Deployment Result
+✅ VaultFactory deployed successfully
+- Address: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+- Implementation: `0xa16E02E87b7454126E5E10d957A927A7F5B5d2be`
+- Block: 9
+- Gas Used: 4,583,756
+
+#### Key Learnings
+1. Full Sync mode는 단일 노드 Clique에 부적합 (피어 대기)
+2. Solidity 0.8.20+ PUSH0 opcode는 London EVM까지만 지원되지 않음
+3. Shanghai hardfork는 Withdrawals 필요 → Clique PoA와 비호환
+4. Genesis 변경 시 반드시 Docker volume 삭제 필요
+

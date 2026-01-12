@@ -863,3 +863,87 @@ _작성 예정_
 
 **Last Updated**: 2026-01-12  
 **Status**: Phase 0 완료, Phase 1 준비 중
+
+---
+
+## Phase 1: Day 6-7 (2026-01-12)
+
+### Besu Private Network 구축 및 Smart Contract 배포
+
+#### 작업 개요
+- Hyperledger Besu 기반 Private Ethereum 네트워크 구축
+- VaultFactory 및 IndividualVault 배포
+- Docker Compose 기반 인프라 구성
+
+#### 설계 결정
+
+1. **Clique PoA Consensus**
+   - 선택 이유: Private network에 적합, PoW보다 빠른 블록 생성
+   - 블록 타임: 3초
+   - Epoch 길이: 30,000 블록
+
+2. **Single-Node 초기 구성**
+   - 개발 단계에서 단일 노드로 시작
+   - 향후 4-node 네트워크로 확장 계획
+
+3. **EVM 버전: London**
+   - Solidity 0.8.20+ PUSH0 opcode 이슈 해결
+   - Besu의 London 하드포크 지원 활용
+
+#### 트러블슈팅 및 해결
+
+**Issue 1: Clique 블록 생성 실패**
+- 증상: `eth_blockNumber` 계속 0x0 반환
+- 원인: Full Sync mode에서 최소 5 피어 대기
+- 해결: `--sync-mode` 옵션 제거
+
+**Issue 2: Deployment 트랜잭션 실패**
+- 증상: `status: 0 (failed)`, EIP-3855 경고
+- 원인: PUSH0 opcode 미지원 (Solidity 0.8.20+)
+- 해결: `foundry.toml`에 `evm_version = "london"` 설정
+
+**Issue 3: Shanghai Withdrawals 에러**
+- 증상: `withdrawals must not be null when Withdrawals are activated`
+- 원인: Shanghai는 Withdrawals 필수 → Clique PoA 비호환
+- 해결: London 하드포크로 유지
+
+#### 배포 결과
+
+```
+✅ VaultFactory: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+✅ Implementation: 0xa16E02E87b7454126E5E10d957A927A7F5B5d2be
+✅ Block: 9
+✅ Gas Used: 4,583,756
+✅ Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+```
+
+#### 인프라 구성
+
+**Services:**
+- Besu Node 1: RPC 8545, WebSocket 8546, P2P 30303
+- PostgreSQL 16: Port 5432 (legacychain DB)
+- Redis 7: Port 6379 (caching)
+
+**Network:**
+- Chain ID: 1337
+- Network ID: 1337
+- Consensus: Clique PoA
+- Genesis Accounts: 2 (pre-funded)
+
+#### Next Steps
+
+1. **Multi-node Network 확장**
+   - besu-node-2, 3, 4 추가
+   - Static peers 설정
+   - 네트워크 안정성 테스트
+
+2. **Backend API 개발 (Go + Fiber)**
+   - PostgreSQL 연결
+   - GORM 모델 구축
+   - Core API endpoints
+
+3. **Frontend 개발 (Next.js 14)**
+   - MetaMask 연동
+   - Vault management UI
+   - Heartbeat monitoring
+   

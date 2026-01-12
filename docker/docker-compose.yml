@@ -1,0 +1,184 @@
+version: '3.8'
+
+services:
+  # ============ Besu Nodes ============
+  
+  besu-node-1:
+    image: hyperledger/besu:24.12.0
+    container_name: legacychain-besu-node-1
+    command: >
+      --genesis-file=/config/genesis.json
+      --network-id=1337
+      --data-path=/data
+      --node-private-key-file=/config/node1-key
+      --host-allowlist="*"
+      --rpc-http-enabled
+      --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --rpc-http-cors-origins="*"
+      --rpc-ws-enabled
+      --rpc-ws-api=ETH,NET,WEB3,ADMIN,CLIQUE
+      --rpc-ws-host=0.0.0.0
+      --rpc-ws-port=8546
+      --p2p-enabled=true
+      --p2p-host=0.0.0.0
+      --p2p-port=30303
+      --discovery-enabled=false
+      --miner-enabled
+      --miner-coinbase=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+    ports:
+      - "8545:8545"
+      - "8546:8546"
+      - "30303:30303"
+    volumes:
+      - ./besu/genesis.json:/config/genesis.json
+      - ./besu/node1-key:/config/node1-key
+      - besu-node-1-data:/data
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  besu-node-2:
+    image: hyperledger/besu:24.12.0
+    container_name: legacychain-besu-node-2
+    command: >
+      --genesis-file=/config/genesis.json
+      --network-id=1337
+      --data-path=/data
+      --host-allowlist="*"
+      --rpc-http-enabled
+      --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --p2p-enabled=true
+      --p2p-host=0.0.0.0
+      --p2p-port=30303
+      --discovery-enabled=false
+      --miner-enabled
+      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+    ports:
+      - "8547:8545"
+      - "30304:30303"
+    volumes:
+      - ./besu/genesis.json:/config/genesis.json
+      - besu-node-2-data:/data
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+
+  besu-node-3:
+    image: hyperledger/besu:24.12.0
+    container_name: legacychain-besu-node-3
+    command: >
+      --genesis-file=/config/genesis.json
+      --network-id=1337
+      --data-path=/data
+      --host-allowlist="*"
+      --rpc-http-enabled
+      --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --p2p-enabled=true
+      --p2p-host=0.0.0.0
+      --p2p-port=30303
+      --discovery-enabled=false
+      --miner-enabled
+      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+    ports:
+      - "8548:8545"
+      - "30305:30303"
+    volumes:
+      - ./besu/genesis.json:/config/genesis.json
+      - besu-node-3-data:/data
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+
+  besu-node-4:
+    image: hyperledger/besu:24.12.0
+    container_name: legacychain-besu-node-4
+    command: >
+      --genesis-file=/config/genesis.json
+      --network-id=1337
+      --data-path=/data
+      --host-allowlist="*"
+      --rpc-http-enabled
+      --rpc-http-api=ETH,NET,WEB3,ADMIN,CLIQUE
+      --rpc-http-host=0.0.0.0
+      --rpc-http-port=8545
+      --p2p-enabled=true
+      --p2p-host=0.0.0.0
+      --p2p-port=30303
+      --discovery-enabled=false
+      --miner-enabled
+      --miner-coinbase=0xfe3b557e8fb62b89f4916b721be55ceb828dbd73
+    ports:
+      - "8549:8545"
+      - "30306:30303"
+    volumes:
+      - ./besu/genesis.json:/config/genesis.json
+      - besu-node-4-data:/data
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+
+  # ============ PostgreSQL ============
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: legacychain-postgres
+    environment:
+      POSTGRES_DB: legacychain
+      POSTGRES_USER: legacychain
+      POSTGRES_PASSWORD: legacychain_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U legacychain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ Redis ============
+  
+  redis:
+    image: redis:7-alpine
+    container_name: legacychain-redis
+    command: redis-server --requirepass legacychain_redis_password --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - legacychain-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  besu-node-1-data:
+  besu-node-2-data:
+  besu-node-3-data:
+  besu-node-4-data:
+  postgres-data:
+  redis-data:
+
+networks:
+  legacychain-network:
+    driver: bridge
