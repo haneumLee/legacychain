@@ -593,15 +593,182 @@ Besu 네트워크 초기 구축 시 노드 수를 결정해야 했습니다.
 
 ---
 
-## 추가 예정 ADR
+## ADR-009: Go + Fiber Backend Framework
 
-- ADR-009: DID Registry 다중 Oracle (Phase 1.5)
-- ADR-010: Emergency Recovery Guardian 구조
-- ADR-011: ERC-4337 Account Abstraction (Phase 2)
-- ADR-012: Gas Optimization 전략
-- ADR-013: Layer 2 Migration 계획
+### Date
+2026-01-13
+
+### Status
+✅ Accepted
+
+### Context
+Backend API 개발을 위한 언어 및 프레임워크 선택이 필요했습니다.
+
+**후보군**:
+1. **Node.js + Express**: 널리 사용되는 JavaScript 스택
+2. **Python + FastAPI**: 빠른 개발, 타입 힌트 지원
+3. **Go + Fiber**: 고성능, 강타입, 동시성 우수
+4. **Rust + Actix-web**: 최고 성능, 메모리 안전성
+
+**요구사항**:
+- Ethereum 클라이언트 통합 (go-ethereum 사용 선호)
+- 높은 동시성 처리 (실시간 이벤트 리스닝)
+- 타입 안전성 (컨트랙트 ABI 바인딩)
+- 빠른 HTTP 응답 (모바일 앱 대응)
+- 유지보수 용이성
+
+### Decision
+**Go 1.25.0 + Fiber v3** 조합 선택
+
+**핵심 이유**:
+1. **go-ethereum 네이티브 지원**: 
+   - ABI 바인딩 자동 생성 (`abigen`)
+   - 트랜잭션 서명/전송 간편
+   - 이벤트 리스닝 성능 우수
+
+2. **Fiber 프레임워크 장점**:
+   - Express.js 유사 API (학습 곡선 낮음)
+   - fasthttp 기반 (Express 대비 ~10배 빠름)
+   - 풍부한 미들웨어 생태계
+   - 제로 메모리 할당 최적화
+
+3. **Go 언어 특성**:
+   - Goroutine으로 동시성 처리 간편
+   - 강타입 시스템으로 런타임 에러 감소
+   - 단일 바이너리 배포 (Docker 이미지 크기 축소)
+   - 크로스 컴파일 지원
+
+4. **성능 벤치마크** (Hello World 기준):
+   ```
+   Fiber:   6,162,556 req/s
+   Express:   367,069 req/s
+   FastAPI:   114,000 req/s
+   ```
+
+### Consequences
+
+**Positive**:
+- ✅ go-ethereum 완벽 호환 (ABI 바인딩, 서명, 이벤트)
+- ✅ Fiber의 뛰어난 성능 (fasthttp 기반)
+- ✅ Goroutine으로 이벤트 리스닝 + API 동시 처리
+- ✅ 단일 바이너리 배포로 DevOps 간소화
+- ✅ 컴파일 타임 타입 체크로 버그 조기 발견
+- ✅ 메모리 효율성 (GC 최적화)
+
+**Negative**:
+- ⚠️ Node.js 대비 생태계 작음 (일부 라이브러리 부족)
+- ⚠️ 제네릭 문법 복잡성 (Go 1.18+)
+- ⚠️ Error handling 장황함 (`if err != nil` 반복)
+- ⚠️ Fiber v3가 RC 단계 (안정화 필요)
+
+**Mitigation**:
+- GORM, Redis, JWT 등 주요 라이브러리 성숙함
+- Error wrapping 패턴 적용 (`fmt.Errorf`)
+- Fiber v3 GitHub 이슈 모니터링
+- 단위 테스트 충분히 작성
+
+### Technical Details
+
+**설치된 주요 의존성**:
+```go
+github.com/gofiber/fiber/v3          // Web framework
+gorm.io/gorm                          // ORM
+gorm.io/driver/postgres               // PostgreSQL driver
+github.com/redis/go-redis/v9          // Redis client
+github.com/ethereum/go-ethereum       // Ethereum client
+github.com/golang-jwt/jwt/v5          // JWT auth
+github.com/google/uuid                // UUID generation
+```
+
+**디렉토리 구조**:
+```
+backend/
+├── api/
+│   ├── handlers/      # HTTP request handlers
+│   ├── middleware/    # JWT, Rate Limit, CORS
+│   └── routes/        # Route registration
+├── models/            # GORM models
+├── services/          # Business logic, blockchain
+├── utils/             # Helper functions
+├── config/            # Environment config
+└── cmd/               # Application entry point
+```
+
+**성능 최적화 요소**:
+1. Fiber의 Zero-allocation 라우터
+2. fasthttp의 재사용 가능한 객체 풀
+3. GORM의 Prepared Statement 캐싱
+4. Redis 기반 Rate Limiting
+
+### Alternatives Considered
+
+**Node.js + Express (기각)**:
+- ❌ Single-threaded (CPU-bound 작업 취약)
+- ❌ go-ethereum 바인딩 복잡 (ethers.js로 우회 필요)
+- ❌ 성능 낮음 (10배 차이)
+- ✅ 생태계 넓음 (npm 패키지 풍부)
+
+**Python + FastAPI (기각)**:
+- ❌ GIL로 인한 동시성 제한
+- ❌ 배포 복잡 (가상환경 관리)
+- ❌ go-ethereum 미지원 (web3.py 사용)
+- ✅ 빠른 개발 속도
+
+**Rust + Actix-web (기각)**:
+- ❌ 학습 곡선 가파름 (Ownership, Lifetime)
+- ❌ 개발 속도 느림
+- ❌ Ethereum 라이브러리 성숙도 낮음
+- ✅ 최고 성능 및 메모리 안전성
+
+### Implementation Status
+
+**Day 11-12 완료사항**:
+- ✅ Backend 디렉토리 구조 생성
+- ✅ Go 모듈 초기화 (`go.mod`)
+- ✅ 의존성 설치 (Fiber, GORM, Redis, go-ethereum, JWT)
+- ✅ GORM 모델 구현 (User, Vault, Heir, Heartbeat)
+- ✅ Database/Redis 초기화 유틸리티
+- ✅ JWT 인증 미들웨어
+- ✅ Redis 기반 Rate Limiter
+- ✅ Auth Handler (Login, GetMe)
+- ✅ Vault Handler (Create, List, Get)
+- ✅ 라우트 설정 (`/api/v1`)
+- ✅ 메인 애플리케이션 (`cmd/main.go`)
+- ✅ 빌드 테스트 성공
+
+**Day 13-15 예정**:
+- 🔜 Ethereum 서명 검증 (ECDSA Personal Sign)
+- 🔜 Blockchain Service (go-ethereum client)
+- 🔜 VaultFactory ABI 바인딩
+- 🔜 이벤트 리스닝 (VaultCreated, HeartbeatCommitted)
+- 🔜 Heartbeat/Heir Handlers
+- 🔜 Unit/Integration Tests
+
+### Future Enhancements
+
+**Phase 2 계획**:
+- WebSocket 지원 (실시간 알림)
+- gRPC API (모바일 앱 연동)
+- GraphQL endpoint (복잡한 쿼리 최적화)
+- Prometheus metrics
+- OpenTelemetry tracing
+
+### References
+- [Fiber Documentation](https://docs.gofiber.io/)
+- [go-ethereum Documentation](https://geth.ethereum.org/docs/developers/dapp-developer/native)
+- [GORM Documentation](https://gorm.io/docs/)
+- [Fiber vs Express Benchmark](https://github.com/gofiber/fiber#-benchmarks)
 
 ---
 
-**Last Updated**: 2026-01-12  
-**Status**: Active Development
+## 추가 예정 ADR
+
+- ADR-010: DID Registry 다중 Oracle (Phase 1.5)
+- ADR-011: Emergency Recovery Guardian 구조
+- ADR-012: ERC-4337 Account Abstraction (Phase 2)
+- ADR-013: Gas Optimization 전략
+- ADR-014: Layer 2 Migration 계획
+
+---
+
+**Last Updated**: 2026-01-13  

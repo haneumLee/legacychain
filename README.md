@@ -4,7 +4,8 @@
 
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.33-blue.svg)](https://soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Foundry-1.5.1-red.svg)](https://getfoundry.sh/)
-[![Go](https://img.shields.io/badge/Go-1.21.13-00ADD8.svg)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.25.0-00ADD8.svg)](https://go.dev/)
+[![Fiber](https://img.shields.io/badge/Fiber-v3.0.0--rc.3-00ACD7.svg)](https://gofiber.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## 📖 개요
@@ -174,10 +175,12 @@ npm run dev
 - Clique PoA Consensus
 
 **Backend:**
-- Go 1.21.13
-- Fiber Framework
+- Go 1.25.0
+- Fiber v3 Framework
+- GORM (PostgreSQL Driver)
 - PostgreSQL 16
 - Redis 7
+- go-ethereum
 
 **Frontend:**
 - Next.js 14

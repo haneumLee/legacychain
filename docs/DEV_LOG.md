@@ -946,4 +946,240 @@ _작성 예정_
    - MetaMask 연동
    - Vault management UI
    - Heartbeat monitoring
-   
+
+---
+
+## Phase 1 Week 3: Backend API Development
+
+### [2026-01-13] Day 11-12: Go + Fiber 프로젝트 초기화
+
+#### 작업 개요
+LegacyChain Backend API 개발 시작. Go 언어와 Fiber 프레임워크를 사용하여 고성능 REST API 서버 구축.
+
+#### 설계 판단 (Design Decision)
+
+**기술 스택 선정 이유:**
+- **Go 1.25.0**: 고성능, 동시성 처리 우수, 타입 안전성
+- **Fiber v3**: Express.js 스타일 API, 매우 빠른 HTTP 라우팅 (fasthttp 기반)
+- **GORM**: Go의 가장 널리 사용되는 ORM, Auto Migration 지원
+- **PostgreSQL**: ACID 보장, 복잡한 관계형 데이터 처리
+- **Redis**: Rate Limiting, Caching, Session 관리
+- **go-ethereum**: 스마트 컨트랙트 ABI 바인딩, 트랜잭션 서명
+
+#### 1. 프로젝트 구조 생성
+
+```bash
+mkdir -p backend/{api/{handlers,middleware,routes},models,services,utils,config,cmd}
+```
+
+**디렉토리 설명:**
+- `api/handlers`: HTTP 요청 핸들러 (Auth, Vault, Heartbeat, Heir)
+- `api/middleware`: JWT 인증, Rate Limiting, CORS
+- `api/routes`: 라우트 그룹화 및 등록
+- `models`: GORM 데이터베이스 모델
+- `services`: 비즈니스 로직, 블록체인 상호작용
+- `utils`: 헬퍼 함수, 암호화 유틸리티
+- `config`: 환경 설정 관리
+- `cmd`: 애플리케이션 진입점
+
+#### 2. Go 모듈 초기화 및 의존성 설치
+
+```bash
+cd backend
+go mod init github.com/haneumLee/legacychain/backend
+```
+
+**설치된 의존성:**
+```bash
+go get -u \
+  github.com/gofiber/fiber/v3 \          # Web framework
+  gorm.io/gorm \                          # ORM
+  gorm.io/driver/postgres \               # PostgreSQL driver
+  github.com/redis/go-redis/v9 \          # Redis client
+  github.com/ethereum/go-ethereum \       # Ethereum client
+  github.com/joho/godotenv \              # .env file support
+  github.com/golang-jwt/jwt/v5 \          # JWT authentication
+  github.com/google/uuid                  # UUID generation
+```
+
+**의존성 설치 결과:**
+- ✅ Fiber v3.0.0-rc.3 (Go 1.25.0 auto-upgrade 필요)
+- ✅ GORM v1.31.1 + PostgreSQL driver v1.6.0
+- ✅ Redis client v9.17.2
+- ✅ go-ethereum v1.16.7
+- ✅ JWT v5.3.0
+- ✅ godotenv v1.5.1
+- ✅ UUID support
+
+**주의사항:**
+Fiber v3는 Go 1.25+ 필요. `go get` 과정에서 자동으로 Go 1.21.13 → 1.25.0 업그레이드 수행.
+
+#### 3. 데이터베이스 모델 생성 (GORM)
+
+PostgreSQL 스키마와 일치하는 GORM 모델 구현:
+
+**구현된 모델:**
+1. **User** (`models/user.go`)
+   - UUID Primary Key
+   - Ethereum Address (unique index)
+   - Email, Nickname (optional)
+   - Soft Delete 지원
+   - Vault 관계 (1:N)
+
+2. **Vault** (`models/vault.go`)
+   - UUID Primary Key
+   - VaultID (unique index, 온체인 ID)
+   - ContractAddress (unique, 42자 Ethereum 주소)
+   - Status enum: locked, unlocked, claimed
+   - Heartbeat 설정 (interval, grace period)
+   - Multi-sig 설정 (required approvals)
+   - Owner, Heirs, Heartbeats 관계
+
+3. **Heir** (`models/heir.go`)
+   - UUID Primary Key
+   - VaultID Foreign Key
+   - Ethereum Address
+   - ShareBPS (Basis Points: 0-10000)
+   - Approval/Claim 플래그
+
+4. **Heartbeat** (`models/heartbeat.go`)
+   - UUID Primary Key
+   - VaultID Foreign Key
+   - TxHash (unique, 온체인 트랜잭션 해시)
+   - Timestamp 인덱스
+
+#### 4. 설정 관리 (Configuration)
+
+**환경 변수 기반 설정 (`config/config.go`):**
+- Server: Port, Environment
+- Database: PostgreSQL 연결 정보
+- Redis: 연결 정보, DB 번호
+- Blockchain: RPC/WebSocket URL, Chain ID, VaultFactory 주소
+- JWT: Secret, Expiry
+- Rate Limit: Max requests, Time window
+
+**`.env.example` 템플릿 제공:**
+- 개발자가 복사해서 사용
+- 민감 정보 Git에서 제외 (.gitignore)
+
+#### 5. 유틸리티 함수
+
+**Database 초기화 (`utils/database.go`):**
+- GORM 연결 설정
+- Auto Migration (User, Vault, Heir, Heartbeat)
+- Development 모드에서 SQL 로깅
+
+**Redis 초기화 (`utils/redis.go`):**
+- Redis 클라이언트 설정
+- Ping 테스트로 연결 확인
+
+#### 6. Middleware 구현
+
+**JWT 인증 (`api/middleware/auth.go`):**
+- Authorization 헤더에서 Bearer 토큰 추출
+- JWT 서명 검증
+- Claims에서 Ethereum Address 추출
+- Context에 저장 (c.Locals("address"))
+
+**Rate Limiter (`api/middleware/ratelimit.go`):**
+- Redis 기반 IP별 요청 수 제한
+- Sliding Window 방식
+- X-RateLimit-* 헤더 제공
+- 초과 시 429 Too Many Requests
+
+#### 7. API Handlers 구현
+
+**Auth Handler (`api/handlers/auth.go`):**
+- `POST /auth/login`: Ethereum 서명 검증 후 JWT 발급
+- `GET /auth/me`: 현재 인증된 사용자 정보
+
+**Vault Handler (`api/handlers/vault.go`):**
+- `POST /vaults`: 새 Vault 생성 (트랜잭션으로 Heirs도 함께 생성)
+- `GET /vaults`: 현재 사용자의 모든 Vault 목록
+- `GET /vaults/:id`: 특정 Vault 상세 정보 (Heirs, Heartbeats 포함)
+
+#### 8. 라우트 설정 (`api/routes/routes.go`)
+
+```
+GET  /health                    # Health check
+
+POST /api/v1/auth/login         # Login (JWT 발급)
+GET  /api/v1/auth/me            # Get current user (JWT required)
+
+POST /api/v1/vaults             # Create vault (JWT required)
+GET  /api/v1/vaults             # List vaults (JWT required)
+GET  /api/v1/vaults/:id         # Get vault (JWT required)
+```
+
+**미들웨어 체인:**
+1. Rate Limiter (모든 /api/v1 경로)
+2. JWT Auth (protected 경로만)
+
+#### 9. 메인 애플리케이션 (`cmd/main.go`)
+
+**구성 요소:**
+- Config 로딩 (환경 변수)
+- Database 연결 및 마이그레이션
+- Redis 연결
+- Fiber 앱 생성
+- 미들웨어 등록 (Recover, Logger, CORS)
+- 라우트 설정
+- HTTP 서버 시작
+
+**CORS 설정:**
+- 모든 Origin 허용 (개발 환경)
+- 프로덕션에서는 특정 도메인만 허용으로 변경 필요
+
+#### 빌드 및 실행 테스트
+
+```bash
+# 빌드 테스트
+go build -o bin/server ./cmd/main.go
+✅ 성공 (bin/server 생성됨)
+
+# 의존성 정리
+go mod tidy
+✅ 모든 의존성 정상
+```
+
+#### 다음 단계 (Day 13-15)
+
+1. **Signature Verification**
+   - ECDSA 서명 검증 로직 구현
+   - Ethereum Personal Sign 메시지 검증
+
+2. **Blockchain Service**
+   - go-ethereum 클라이언트 설정
+   - VaultFactory ABI 바인딩
+   - 이벤트 리스닝 (VaultCreated)
+   - 트랜잭션 전송 (Heartbeat Commit/Reveal)
+
+3. **Additional Handlers**
+   - HeartbeatHandler: Commit, Reveal, Status
+   - HeirHandler: Approve, Claim
+
+4. **Testing**
+   - Unit tests (handlers, services)
+   - Integration tests (API endpoints)
+
+5. **Documentation**
+   - Swagger/OpenAPI 명세
+   - API 사용 예제
+
+#### 기술적 고려사항
+
+**장점:**
+- ✅ Fiber의 뛰어난 성능 (fasthttp 기반, Express.js 유사 API)
+- ✅ GORM Auto Migration으로 스키마 관리 간편
+- ✅ Redis 기반 Rate Limiting으로 DDoS 방어
+- ✅ JWT 인증으로 stateless API
+- ✅ UUID 사용으로 Auto-increment ID 노출 방지
+
+**주의사항:**
+- ⚠️ Signature verification 필수 (현재 TODO)
+- ⚠️ CORS 설정 프로덕션 배포 시 제한 필요
+- ⚠️ JWT Secret 환경변수로 관리, 강력한 키 사용
+- ⚠️ Redis 장애 시 Rate Limiter 우회 가능성
+- ⚠️ Database connection pool 설정 필요 (고트래픽 대비)
+
+---
