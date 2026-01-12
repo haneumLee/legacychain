@@ -1461,5 +1461,296 @@ export const config = createConfig({
 
 ---
 
+### [2026-01-12] Day 14: Frontend UI 구현 (옵션 1)
+
+#### 작업 개요
+Vault 관리를 위한 전체 UI 구현 완료 - 사용자가 지갑 연결부터 Vault 생성, 관리, Heartbeat 전송까지 모든 기능을 웹 인터페이스에서 수행 가능
+
+#### 설계 판단
+
+**React Server Components vs Client Components:**
+- 모든 페이지를 'use client'로 구현
+- 이유: Wallet 연결 및 블록체인 상호작용은 클라이언트 측에서만 가능
+- Wagmi hooks는 클라이언트 컴포넌트에서만 작동
+
+**State Management 전략:**
+- Global State: Wagmi + React Query (블록체인 데이터)
+- Local State: useState (폼 입력, UI 상태)
+- 장점: 서버 상태와 클라이언트 상태 분리로 단순화
+
+#### 1. 공통 컴포넌트 구현
+
+##### 1.1 WalletConnect Component
+```tsx
+// frontend/components/WalletConnect.tsx
+- MetaMask 연결 기능
+- 주소 표시 (0x1234...5678 형식)
+- 연결 해제 기능
+- 연결 상태에 따른 UI 변경
+```
+
+**기능:**
+- `useAccount()`: 현재 연결된 주소 확인
+- `useConnect()`: 지갑 연결
+- `useDisconnect()`: 연결 해제
+- `injected()` connector: MetaMask 사용
+
+##### 1.2 Providers Component
+```tsx
+// frontend/components/Providers.tsx
+- WagmiProvider: 블록체인 연결 관리
+- QueryClientProvider: 데이터 캐싱
+```
+
+**설정:**
+- Besu 로컬 네트워크 (Chain ID: 1337)
+- React Query 자동 리페치 및 캐싱
+
+#### 2. 페이지 구현
+
+##### 2.1 Landing Page (app/page.tsx)
+```
+구조:
+- Header with WalletConnect
+- Hero Section (제목 + 설명)
+- CTA Buttons (Create Vault, My Vaults)
+- Feature Cards (보안, Heartbeat, 상속인)
+```
+
+**주요 기능:**
+- 프로젝트 소개
+- 빠른 액션 버튼
+- 기능 설명
+
+##### 2.2 Vault Creation Page (app/vault/create/page.tsx)
+```
+구조:
+- Heartbeat 설정 (interval, max inactivity)
+- 상속인 추가/제거 (주소, 가중치)
+- 검증 로직
+- 트랜잭션 처리
+```
+
+**주요 기능:**
+- 동적 상속인 추가/제거
+- 가중치 합계 검증 (100% 필수)
+- VaultFactory.createVault() 호출
+- 성공/로딩 상태 처리
+
+**검증 규칙:**
+- 최소 1명의 상속인
+- 가중치 합계 = 100%
+- 유효한 Ethereum 주소
+- Heartbeat interval < Max inactivity
+
+##### 2.3 Vault List Page (app/vault/page.tsx)
+```
+구조:
+- Vault 목록 그리드
+- 각 Vault 카드 (주소, 상태, 정보)
+- 빈 상태 처리
+```
+
+**주요 기능:**
+- VaultFactory.getUserVaults() 호출
+- 로딩 상태 표시
+- 빈 목록 시 안내 메시지
+- Vault 카드 클릭 → 상세 페이지
+
+##### 2.4 Vault Detail Page (app/vault/[id]/page.tsx)
+```
+구조:
+- Vault 정보 (Owner, 상태, 설정)
+- Heartbeat 관리 (Commit-Reveal)
+- Quick Actions
+- 만료 시간 계산
+```
+
+**주요 기능:**
+- Vault 상세 정보 조회
+- Commit-Reveal Heartbeat 프로세스
+  - Step 1: Commit (해시 제출)
+  - Step 2: Reveal (시크릿 공개)
+- 만료까지 남은 시간 표시
+- Owner만 Heartbeat 전송 가능
+
+**Commit-Reveal UI 플로우:**
+1. 사용자가 시크릿의 해시 입력 → Commit
+2. Commit 성공 → Reveal 버튼 활성화
+3. 원본 시크릿 입력 → Reveal
+4. Reveal 성공 → lastHeartbeat 업데이트
+
+##### 2.5 Dashboard Page (app/dashboard/page.tsx)
+```
+구조:
+- 통계 카드 (총 Vault, 활성, 알림)
+- Heartbeat 타임라인
+- 만료 경고
+- Quick Actions
+```
+
+**주요 기능:**
+- 모든 Vault 현황 한눈에 보기
+- 각 Vault의 Heartbeat 타임라인
+- 만료 임박 Vault 경고 (7일 이하: 빨강, 30일 이하: 주황)
+- 빠른 Heartbeat 전송
+
+**타임라인 정보:**
+- Last Heartbeat 시간
+- Next Due 계산 (lastHeartbeat + interval)
+- 각 Vault로 바로 이동 링크
+
+#### 3. 스타일링 및 UX
+
+**디자인 시스템:**
+- Tailwind CSS 유틸리티 클래스
+- 그라데이션 배경 (blue-50 to indigo-100)
+- 카드 기반 레이아웃
+- Hover 효과 및 트랜지션
+
+**색상 팔레트:**
+- Primary: Blue-600 (CTA, 링크)
+- Success: Green-600 (활성 상태)
+- Warning: Orange-600 (경고)
+- Danger: Red-600 (에러, 만료)
+- Gray: 텍스트 및 비활성 요소
+
+**반응형 디자인:**
+- Mobile First 접근
+- Grid 레이아웃 (md: 2열, lg: 3열)
+- Flex 레이아웃 (버튼, 카드)
+
+#### 4. 블록체인 상호작용
+
+**Read Operations (useReadContract):**
+- `owner()`: Vault 소유자 확인
+- `heartbeatInterval()`: 설정된 주기
+- `maxInactivityPeriod()`: 최대 비활성 기간
+- `lastHeartbeat()`: 마지막 Heartbeat 시간
+- `paused()`: Vault 일시정지 상태
+- `getUserVaults()`: 사용자의 모든 Vault
+
+**Write Operations (useWriteContract):**
+- `createVault()`: 새 Vault 생성
+- `commitHeartbeat()`: Heartbeat 커밋
+- `revealHeartbeat()`: Heartbeat 공개
+
+**Transaction Flow:**
+1. `writeContract()` 호출 → MetaMask 팝업
+2. 사용자 승인 → Transaction Hash 반환
+3. `useWaitForTransactionReceipt()` → 블록 확인 대기
+4. `isSuccess` → UI 업데이트
+
+#### 5. 에러 처리 및 사용자 피드백
+
+**지갑 미연결:**
+- 모든 보호된 페이지에서 연결 요청 표시
+- WalletConnect 버튼 강조
+
+**로딩 상태:**
+- 스피너 애니메이션 (Tailwind animate-spin)
+- 버튼 비활성화 + 텍스트 변경
+- "Confirming...", "Processing..." 메시지
+
+**성공 상태:**
+- 체크마크 아이콘
+- 녹색 메시지
+- Transaction Hash 표시
+- 다음 액션 버튼
+
+**에러 상태:**
+- Alert 메시지 (alert())
+- 빨간색 배경 카드
+- 에러 메시지 표시
+
+#### 6. 데이터 변환 유틸리티
+
+```typescript
+// 주소 포맷팅
+formatAddress(addr) → "0x1234...5678"
+
+// 타임스탬프 변환
+formatTimestamp(bigint) → "2026-01-12 15:30:00"
+
+// 기간 변환
+formatDuration(seconds) → "30 days"
+
+// 남은 시간 계산
+getTimeUntilExpiry() → "25 days 12 hours"
+```
+
+#### 7. 완료된 작업 요약
+
+**Components:**
+- ✅ WalletConnect (지갑 연결 컴포넌트)
+- ✅ Providers (Wagmi + React Query)
+
+**Pages:**
+- ✅ Landing Page (/) - 홈페이지
+- ✅ Vault Creation (/vault/create) - Vault 생성
+- ✅ Vault List (/vault) - Vault 목록
+- ✅ Vault Detail (/vault/[id]) - Vault 상세 + Heartbeat
+- ✅ Dashboard (/dashboard) - 전체 현황
+
+**Features:**
+- ✅ MetaMask 연결/해제
+- ✅ Vault 생성 (상속인 동적 추가)
+- ✅ Vault 목록 조회
+- ✅ Vault 상세 정보 조회
+- ✅ Commit-Reveal Heartbeat
+- ✅ 만료 시간 계산 및 경고
+- ✅ 반응형 디자인
+
+#### 8. 다음 단계
+
+**Backend 통합:**
+- [ ] Besu 네트워크에 컨트랙트 배포
+- [ ] Backend API 서버 시작
+- [ ] Frontend-Backend 연동 테스트
+
+**End-to-End 테스트:**
+- [ ] Wallet 연결 → Vault 생성
+- [ ] Heartbeat Commit → Reveal
+- [ ] 상속인 추가 → 가중치 분배
+- [ ] Vault 만료 → 상속 프로세스
+
+**개선 사항:**
+- [ ] 에러 핸들링 개선 (Toast 알림)
+- [ ] 트랜잭션 진행 상태 표시
+- [ ] 상속인 관리 UI
+- [ ] Vault Pause/Resume 기능
+
+#### 9. 시간 기록
+- WalletConnect 컴포넌트: ~10분
+- Providers 설정: ~5분
+- Landing Page: ~10분
+- Vault Creation Page: ~30분
+- Vault List Page: ~20분
+- Vault Detail Page: ~40분
+- Dashboard Page: ~30분
+- **Day 14 소요 시간**: ~2시간 25분
+- **누적 시간**: ~8시간
+
+#### 10. 기술적 노트
+
+**Wagmi v2 변경사항:**
+- `useContractWrite` → `useWriteContract`
+- `useContractRead` → `useReadContract`
+- `useWaitForTransaction` → `useWaitForTransactionReceipt`
+- Query 옵션이 별도 객체로 분리
+
+**Next.js 14 App Router:**
+- 모든 페이지가 기본적으로 Server Components
+- 'use client' 지시어로 Client Component 명시
+- Dynamic Routes: `[id]` 폴더로 구현
+- Params는 Promise로 전달 (use() 훅 필요)
+
+**TypeScript 타입 안전성:**
+- Viem의 타입 시스템 활용
+- `0x${string}` 타입으로 주소 검증
+- bigint 타입으로 블록체인 숫자 처리
+
+---
+
 **Last Updated**: 2026-01-12  
-**Next**: Frontend UI 구현 및 End-to-End 테스트
+**Next**: Besu 네트워크에 컨트랙트 배포 및 통합 테스트
